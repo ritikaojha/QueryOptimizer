@@ -22,17 +22,15 @@ function onOpen() {
 
 function onMessage(event) {
     jsonObject = JSON.parse(event.data);
-    parse(jsonObject)
+    chart_query_visualizer_config = (jsonObject);
+    new Treant(chart_query_visualizer_config);
 }
 
 function formSubmit() {
     var form = document.getElementById("sendQueryForm");
     var query = form.elements["query"].value;
     document.getElementById("sendQueryForm").reset();
-    chart_query_visualizer_config = websocket.send(query);
-    alert(query);
-    alert(chart_query_visualizer_config);
-    new Treant(chart_query_visualizer_config);
+    websocket.send(query);
 }
 
 function init() {
