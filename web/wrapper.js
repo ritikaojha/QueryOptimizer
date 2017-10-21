@@ -3,6 +3,7 @@ window.onload = init;
 var wsUri = "ws://" + document.location.host + document.location.pathname + "queryoptimizer";
 var websocket = new WebSocket(wsUri);
 
+websocket.onmessage = function(evt) { onMessage(evt) };
 websocket.onerror = function(evt) { onError(evt) };
 
 function onError(evt) {
