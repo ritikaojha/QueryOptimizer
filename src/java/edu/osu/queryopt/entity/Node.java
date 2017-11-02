@@ -14,5 +14,6 @@ import java.io.Serializable;
 public class Node implements Serializable {
     
     public String HTMLclass = "nodeExample1";
+    public int size;
     
 }
