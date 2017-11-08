@@ -4,18 +4,8 @@
  * and open the template in the editor.
  */
 package edu.osu.queryopt;
-import edu.osu.queryopt.entity.Config;
 import edu.osu.queryopt.entity.NodeStructure;
-import edu.osu.queryopt.entity.Text;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.PriorityQueue;
-import java.util.Queue;
-import java.util.Set;
-import java.util.StringJoiner;
-
 /**
  * NOT TESTED!!!
  * @author kathy
@@ -30,7 +20,6 @@ public class JoinOrderOptimizer {
             //merge into one subtree
             NodeStructure newTree = new NodeStructure("JOIN");
             newTree.children.addAll(subtrees);
-            newTree.UpdateCost();
             newTree.UpdateSize();
             result.add(newTree);
         } else {
@@ -48,7 +37,7 @@ public class JoinOrderOptimizer {
                 subQuery.remove(subtrees.get(i - 1));
                 subQuery.add(subtrees.get(i));
                 LinkedList<NodeStructure> tempResult = produceJoinPlan(subQuery);
-                if(tempResult.peek().cost < result.peek().cost)
+                if(tempResult.peek().selectivity < result.peek().selectivity)
                     result = tempResult;
                 else
                     checked.add(tempResult.getFirst());
