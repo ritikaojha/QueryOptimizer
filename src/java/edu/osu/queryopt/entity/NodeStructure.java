@@ -14,7 +14,10 @@ import java.util.List;
  */
 public class NodeStructure implements Serializable {
     
+    public enum NodeType { Project, Select, Join, Cartesian, Relation};
+    public NodeType nodeType;
     public Text text;
+    public List<String> conditions;
     public List<NodeStructure> children;
     public int selectivity;                          //estimated execution cost
     public int size;                            //size of query
@@ -22,12 +25,32 @@ public class NodeStructure implements Serializable {
     public NodeStructure() {
         text = new Text();
         children = new ArrayList();
+        conditions = new ArrayList();
         UpdateSize();
     }
     
     public NodeStructure(String name) {
         text = new Text(name);
         children = new ArrayList();
+        conditions = new ArrayList();
+        UpdateSize();
+    }
+    
+    public NodeStructure(String name, NodeType type) {
+        text = new Text(name);
+        children = new ArrayList();
+        conditions = new ArrayList();
+        nodeType = type;
+        UpdateSize();
+        StringToNode(name);
+        NodeToString();
+    }
+    
+    public NodeStructure(NodeType type) {
+        text = new Text();
+        children = new ArrayList();
+        conditions = new ArrayList();
+        nodeType = type;
         UpdateSize();
     }
     
@@ -56,5 +79,31 @@ public class NodeStructure implements Serializable {
         
         selectivity = Math.max(distinctA1, distinctA2);
         
+    }
+    
+    public void NodeToString(){
+        String result = "";
+        String separator = " AND";
+        
+        if(nodeType.equals(NodeType.Select)){
+            result = "\u03C3";
+        }
+        for (int i = 0; i < conditions.size(); i++){
+            if(i > 0 && i < conditions.size()){
+                result += separator;
+            }
+            result += " " + conditions.get(i);
+        }
+        text.name = result;
+    }
+    
+    private void StringToNode(String str){
+        if(str.contains("WHERE"))
+            str = str.replaceAll("WHERE\\s+", "");
+        String[] rawTokens = str.split("\\s+AND\\s+");
+        for (int i = 0; i < rawTokens.length; i++){
+            if(!conditions.contains(rawTokens[i]))
+                conditions.add(rawTokens[i]);
+        }
     }
 }

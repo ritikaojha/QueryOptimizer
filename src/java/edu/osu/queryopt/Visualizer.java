@@ -7,6 +7,7 @@ package edu.osu.queryopt;
 
 import edu.osu.queryopt.entity.Config;
 import edu.osu.queryopt.entity.NodeStructure;
+import edu.osu.queryopt.entity.NodeStructure.NodeType;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -29,7 +30,8 @@ public class Visualizer {
         Config config = new Config();
         PriorityQueue<String> tokens = tokenize(query.toUpperCase());
         System.out.println(tokens.toString());
-        config.nodeStructure = buildTree(tokens);
+        NodeStructure node = buildTree(tokens);
+        config.nodeStructure = HeuristicOptimizer.CascadeSelect(node);
         return config;
     }
     
@@ -56,7 +58,13 @@ public class Visualizer {
             return null;
         NodeStructure node = new NodeStructure();
         String token = tokens.poll();
-        if (token.contains("SELECT") || token.contains("WHERE") || token.contains("FROM")) {
+        if(token.contains("WHERE")){
+            node = new NodeStructure(token, NodeType.Select);
+            NodeStructure child = buildTree(tokens);
+            if (child != null)
+                node.children.add(child);
+        }
+        else if (token.contains("SELECT") || token.contains("WHERE") || token.contains("FROM")) {
             node.text.name = format(token);
             NodeStructure child = buildTree(tokens);
             if (child != null)
@@ -68,6 +76,13 @@ public class Visualizer {
             if (child != null)
                 node.children.add(child);
         }
+        
+        if(token.contains("SELECT"))
+            node.nodeType = NodeType.Project;
+        else if(token.contains("JOIN"))
+            node.nodeType = NodeType.Cartesian;
+        else if(token.contains("FROM"))
+            node.nodeType = NodeType.Relation;
         return node;
     }
     
