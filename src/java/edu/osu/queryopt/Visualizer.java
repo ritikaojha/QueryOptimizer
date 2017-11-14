@@ -31,7 +31,8 @@ public class Visualizer {
         PriorityQueue<String> tokens = tokenize(query.toUpperCase());
         System.out.println(tokens.toString());
         NodeStructure node = buildTree(tokens);
-        config.nodeStructure = HeuristicOptimizer.CascadeSelect(node);
+        node = HeuristicOptimizer.CascadeSelect(node);
+        config.nodeStructure = HeuristicOptimizer.CascadeProject(node);
         return config;
     }
     
@@ -58,37 +59,44 @@ public class Visualizer {
             return null;
         NodeStructure node = new NodeStructure();
         String token = tokens.poll();
-        if(token.contains("WHERE")){
-            node = new NodeStructure(token, NodeType.Select);
-            NodeStructure child = buildTree(tokens);
-            if (child != null)
-                node.children.add(child);
-        }
-        else if (token.contains("SELECT") || token.contains("WHERE") || token.contains("FROM")) {
-            node.text.name = format(token);
-            NodeStructure child = buildTree(tokens);
-            if (child != null)
-                node.children.add(child);
-        }
-        else if (token.contains("JOIN") || token.contains("WHERE") || token.contains("FROM")) {
-            node.text.name = token;
-            NodeStructure child = buildTree(tokens);
-            if (child != null)
-                node.children.add(child);
-        }
-        
-        if(token.contains("SELECT"))
-            node.nodeType = NodeType.Project;
+        NodeType nodeType;
+        if(token.contains("WHERE"))
+            nodeType = NodeType.Select;
+        else if(token.contains("SELECT"))
+            nodeType = NodeType.Project;
         else if(token.contains("JOIN"))
-            node.nodeType = NodeType.Cartesian;
+            nodeType = NodeType.Cartesian;
         else if(token.contains("FROM"))
-            node.nodeType = NodeType.Relation;
+            nodeType = NodeType.Relation;
+        else
+            nodeType = NodeType.None;
+        
+        if(token.contains("WHERE") || token.contains("SELECT")){
+            node = new NodeStructure(token, nodeType);
+            NodeStructure child = buildTree(tokens);
+            if (child != null)
+                node.children.add(child);
+        }
+        else if ( token.contains("FROM")) {
+            node.text.name = format(token);
+            node.nodeType = nodeType;
+            NodeStructure child = buildTree(tokens);
+            if (child != null)
+                node.children.add(child);
+        }
+        else if (token.contains("JOIN")) {
+            node.text.name = token;
+            node.nodeType = nodeType;
+            NodeStructure child = buildTree(tokens);
+            if (child != null)
+                node.children.add(child);
+        }
         return node;
     }
     
     static String format(String s) {
         if (s.contains("SELECT"))
-            return s.replace("SELECT", "\u03BC");
+            return s.replace("SELECT", "\u03C0");
         if (s.contains("FROM"))
             return s.replace("FROM", "");
         if (s.contains("WHERE"))

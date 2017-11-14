@@ -14,7 +14,7 @@ import java.util.List;
  */
 public class NodeStructure implements Serializable {
     
-    public enum NodeType { Project, Select, Join, Cartesian, Relation};
+    public enum NodeType { Project, Select, Join, Cartesian, Relation, None};
     public NodeType nodeType;
     public Text text;
     public List<String> conditions;
@@ -83,10 +83,14 @@ public class NodeStructure implements Serializable {
     
     public void NodeToString(){
         String result = "";
-        String separator = " AND";
+        String separator = " ";
         
         if(nodeType.equals(NodeType.Select)){
+            separator = " AND";
             result = "\u03C3";
+        } else if (nodeType.equals(NodeType.Project)) {
+            separator = ",";
+            result = "\u03C0";
         }
         for (int i = 0; i < conditions.size(); i++){
             if(i > 0 && i < conditions.size()){
@@ -98,9 +102,16 @@ public class NodeStructure implements Serializable {
     }
     
     private void StringToNode(String str){
-        if(str.contains("WHERE"))
+        String[] rawTokens = new String[0];
+        if(str.contains("WHERE")){
             str = str.replaceAll("WHERE\\s+", "");
-        String[] rawTokens = str.split("\\s+AND\\s+");
+            rawTokens = str.split("\\s+AND\\s+");
+        }
+        else if(str.contains("SELECT")){
+            str = str.replaceAll("SELECT\\s+", "");
+            rawTokens = str.split(",\\s+");
+        }
+         
         for (int i = 0; i < rawTokens.length; i++){
             if(!conditions.contains(rawTokens[i]))
                 conditions.add(rawTokens[i]);

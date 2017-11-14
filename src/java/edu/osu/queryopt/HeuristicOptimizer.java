@@ -31,4 +31,20 @@ public class HeuristicOptimizer {
         }
         return result;
     }
+    static NodeStructure CascadeProject(NodeStructure nodeStruct){
+        NodeStructure result = nodeStruct;
+        if(!nodeStruct.children.isEmpty()){
+            if(nodeStruct.nodeType.equals(NodeType.Project)){
+                NodeStructure nextChild = nodeStruct.children.remove(0);
+                while(nextChild.nodeType.equals(NodeType.Project)){
+                    nextChild = nextChild.children.remove(0);
+                }
+                nodeStruct.children.add(0, nextChild);
+            }
+            for (int i = 0; i < nodeStruct.children.size(); i++){
+                nodeStruct.children.add(i, CascadeProject(nodeStruct.children.remove(i)));
+            }
+        }
+        return result;
+    }
 }
