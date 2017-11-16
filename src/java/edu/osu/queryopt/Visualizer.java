@@ -30,10 +30,8 @@ public class Visualizer {
         Config config = new Config();
         PriorityQueue<String> tokens = tokenize(query.toUpperCase());
         System.out.println(tokens.toString());
-        SQLConnection.Connect(null);
         NodeStructure node = buildTree(tokens);
-        node = HeuristicOptimizer.CascadeSelect(node);
-        config.nodeStructure = HeuristicOptimizer.CascadeProject(node);
+        config.nodeStructure = HeuristicOptimizer.Optimize(node);
         return config;
     }
     

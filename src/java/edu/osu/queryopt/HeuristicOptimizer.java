@@ -11,7 +11,14 @@ import edu.osu.queryopt.entity.NodeStructure.NodeType;
  * @author kathy
  */
 public class HeuristicOptimizer {
-    static NodeStructure CascadeSelect(NodeStructure nodeStruct){
+    static NodeStructure Optimize(NodeStructure nodeStruct){
+        NodeStructure result;
+        result = CascadeSelect(nodeStruct);
+        result = CascadeProject(result);
+        return result;
+    }
+    
+    private static NodeStructure CascadeSelect(NodeStructure nodeStruct){
         NodeStructure result = nodeStruct;
         if(!nodeStruct.children.isEmpty()){
             if(nodeStruct.nodeType.equals(NodeType.Select) && nodeStruct.conditions.size() > 1){
@@ -31,7 +38,7 @@ public class HeuristicOptimizer {
         }
         return result;
     }
-    static NodeStructure CascadeProject(NodeStructure nodeStruct){
+    private static NodeStructure CascadeProject(NodeStructure nodeStruct){
         NodeStructure result = nodeStruct;
         if(!nodeStruct.children.isEmpty()){
             if(nodeStruct.nodeType.equals(NodeType.Project)){
