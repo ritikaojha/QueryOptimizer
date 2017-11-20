@@ -84,6 +84,8 @@ public class Visualizer {
             String table2 = null;
             
             String temp = tokens.poll();
+            if(!tokens.isEmpty()&&temp.equals("AND"))
+                temp = tokens.poll();
             if (temp.equals("(") && tokens.peek().equals("SELECT")) {
                 Queue subQuery = new LinkedList<>();
                 int bracketCount = 0;
