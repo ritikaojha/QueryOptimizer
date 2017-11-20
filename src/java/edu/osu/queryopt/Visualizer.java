@@ -102,7 +102,7 @@ public class Visualizer {
                 StringJoiner sj = new StringJoiner(" ");
                 sj.add(temp);
                 System.out.print(temp);
-                while(!tokens.peek().equals("IN")
+                while(!tokens.isEmpty()&&!tokens.peek().equals("IN")
                         && !tokens.peek().equals("=")
                         && !tokens.peek().equals("LIKE")){
                     sj.add(tokens.poll());System.out.print(tokens.peek());}
