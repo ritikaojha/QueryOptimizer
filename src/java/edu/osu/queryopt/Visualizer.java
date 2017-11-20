@@ -103,7 +103,7 @@ public class Visualizer {
                 StringJoiner sj = new StringJoiner(" ");
                 sj.add(temp);
                 System.out.print(temp);
-                while(!tokens.peek().equals("IN")
+                while(!tokens.isEmpty()&&!tokens.peek().equals("IN")
                         && !tokens.peek().equals("=")
                         && !tokens.peek().equals("LIKE")){
                     sj.add(tokens.poll());System.out.print(tokens.peek());}
@@ -139,16 +139,15 @@ public class Visualizer {
                 table2 = exp2.split("\\.")[0];
             }
             
-            if (table1 != null
-                    && table2 != null
-                    && query.fromMap.containsKey(table1)
-                    && query.fromMap.containsKey(table2))
-                query.joinOn.add(new String[]{table1, table2,
-                        exp1 + " " + opr + " " + exp2});
-            else {
-                query.fromMap.get(table1).add(
-                        new WhereNode(exp1, queryExp1, opr, exp2, queryExp2));
-            }
+            if (table1 != null && query.fromMap.containsKey(table1)){
+                if(table2 != null && query.fromMap.containsKey(table2))
+                    query.joinOn.add(new String[]{table1, table2,
+                            exp1 + " " + opr + " " + exp2});
+                else {
+                    query.fromMap.get(table1).add(
+                            new WhereNode(exp1, queryExp1, opr, exp2, queryExp2));
+                }
+            }       
         }
         return query;
     }
