@@ -11,10 +11,10 @@ package edu.osu.queryopt.entity;
  */
 public class WhereNode {
     public String exp1;
-    public SelectFromNode queryExp1;
+    public SelectFromWhereNode queryExp1;
     public String opr;
     public String exp2;
-    public SelectFromNode queryExp2;
+    public SelectFromWhereNode queryExp2;
     
     public WhereNode(String exp1, String opr, String exp2) {
         this.exp1 = exp1;
@@ -22,8 +22,8 @@ public class WhereNode {
         this.exp2 = exp2;
     }
     
-    public WhereNode(String exp1, SelectFromNode queryExp1, 
-            String opr, String exp2, SelectFromNode queryExp2) {
+    public WhereNode(String exp1, SelectFromWhereNode queryExp1, 
+            String opr, String exp2, SelectFromWhereNode queryExp2) {
         this.exp1 = exp1;
         this.queryExp1 = queryExp1;
         this.opr = opr;

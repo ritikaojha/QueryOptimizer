@@ -30,7 +30,6 @@ function onMessage(event) {
 function formSubmit() {
     var form = document.getElementById("sendQueryForm");
     var query = form.elements["query"].value;
-    document.getElementById("sendQueryForm").reset();
     websocket.send(query);
 }
 

@@ -14,8 +14,9 @@ import java.util.Map;
  *
  * @author ritika
  */
-public class SelectFromNode {
+public class SelectFromWhereNode {
     public List<String> selectList = new ArrayList<>();
     public Map<String, List<WhereNode>> fromMap = new HashMap<>();
     public List<String[]> joinOn = new ArrayList<>();
+    public List<WhereNode> whereList = new ArrayList<>();
 }

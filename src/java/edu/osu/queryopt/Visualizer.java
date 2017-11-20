@@ -8,7 +8,7 @@ package edu.osu.queryopt;
 import edu.osu.queryopt.entity.Config;
 import edu.osu.queryopt.entity.NodeStructure;
 import edu.osu.queryopt.entity.NodeStructure.NodeType;
-import edu.osu.queryopt.entity.SelectFromNode;
+import edu.osu.queryopt.entity.SelectFromWhereNode;
 import edu.osu.queryopt.entity.WhereNode;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,8 +30,7 @@ import java.util.logging.Logger;
  */
 public class Visualizer {
     
-    static Set<String> keywords = new HashSet<>(Arrays.asList("SELECT", "FROM", "WHERE", "JOIN", "HAVING",
-            "GROUP", "ORDER", "UNION", "INTERSECT", "EXCEPT"));
+    static Set<String> keywords = new HashSet<>(Arrays.asList("SELECT", "FROM", "WHERE", "AND"));
     
     static Config buildExpressionTree(String query) {
         Config config = new Config();
@@ -42,7 +41,7 @@ public class Visualizer {
                 .replace(")", " ) ")
                 .split("\\s+");
         Queue<String> tokens = new LinkedList<>(Arrays.asList(rawTokens));
-        SelectFromNode queryTree;
+        SelectFromWhereNode queryTree;
         try {
             queryTree = buildQueryTree(tokens);
             NodeStructure node = buildSelectNode(queryTree);
@@ -55,12 +54,12 @@ public class Visualizer {
     }
     
     // TODO: Validate the query
-    static SelectFromNode buildQueryTree(Queue<String> tokens) throws Exception {
+    static SelectFromWhereNode buildQueryTree(Queue<String> tokens) throws Exception {
         if (tokens.isEmpty())
             return null;
         if (!tokens.poll().equals("SELECT"))
             throw new Exception("Invalid query");
-        SelectFromNode query = new SelectFromNode();
+        SelectFromWhereNode query = new SelectFromWhereNode();
         while(!tokens.peek().equals("FROM")) {
             String token = tokens.poll();
             if (!token.equals(","))
@@ -77,11 +76,11 @@ public class Visualizer {
             tokens.poll();
         while(!tokens.isEmpty()) {
             String exp1 = null;
-            SelectFromNode queryExp1 = null;
+            SelectFromWhereNode queryExp1 = null;
             String table1 = null;
             String opr = null;
             String exp2 = null;
-            SelectFromNode queryExp2 = null;
+            SelectFromWhereNode queryExp2 = null;
             String table2 = null;
             
             String temp = tokens.poll();
@@ -146,20 +145,27 @@ public class Visualizer {
                 query.joinOn.add(new String[]{table1, table2,
                         exp1 + " " + opr + " " + exp2});
             else {
-                query.fromMap.get(table1).add(
+                query.whereList.add(
                         new WhereNode(exp1, queryExp1, opr, exp2, queryExp2));
             }
         }
         return query;
     }
     
-    static NodeStructure buildSelectNode(SelectFromNode queryTree) {
+    static NodeStructure buildSelectNode(SelectFromWhereNode queryTree) {
         NodeStructure node = new NodeStructure();
-        node.nodeType = NodeType.Project;
+        NodeStructure ptr = node;
+        ptr.nodeType = NodeType.Project;
         StringJoiner sj = new StringJoiner(",");
         for (String select:queryTree.selectList)
             sj.add(select);
-        node.text.name = "\u03C0 " + sj.toString();
+        ptr.text.name = "\u03C0 " + sj.toString();
+        
+        for (WhereNode w:queryTree.whereList) {
+            ptr.children.add(buildWhereNode(w));
+            ptr = ptr.children.get(0);
+        }
+        
         if (!queryTree.joinOn.isEmpty()) {
             Set<String> tablesJoined = new HashSet<>();
             Map<NodeStructure, Set<String>> tempNodes = new HashMap<>();
@@ -254,28 +260,41 @@ public class Visualizer {
                 }
             }
             for (NodeStructure joinChild:tempNodes.keySet())
-                node.children.add(joinChild);
+                ptr.children.add(joinChild);
         }
         else {
             for (String from:queryTree.fromMap.keySet())
-            node.children.add(buildFromNode(from, queryTree.fromMap));
+            ptr.children.add(buildFromNode(from, queryTree.fromMap));
         }
+        return node;
+    }
+    
+    private static NodeStructure buildWhereNode(WhereNode where) {
+        NodeStructure node = new NodeStructure();
+        StringJoiner sj = new StringJoiner(" ");
+        sj.add(where.exp1);
+        sj.add(where.opr);
+        sj.add(where.exp2);
+        node.text.name = "\u03C3 " + sj.toString();
+        node.nodeType = NodeType.Select;
         return node;
     }
 
     private static NodeStructure buildFromNode(String from, Map<String, List<WhereNode>> fromMap) {
         if (fromMap.get(from).isEmpty())
             return new NodeStructure(from);
-        NodeStructure node = new NodeStructure();
-        StringJoiner sj = new StringJoiner(" ");
+        NodeStructure node = null;
+        NodeStructure ptr = node;
         for (WhereNode where:fromMap.get(from)) {
-            sj.add(where.exp1);
-            sj.add(where.opr);
-            sj.add(where.exp2);
+            if (node == null) {
+                node = buildWhereNode(where);
+            }
+            else {
+                ptr.children.add(buildWhereNode(where));
+                ptr = ptr.children.get(0);
+            }
         }
-        node.text.name = "\u03C3 " + sj.toString();
-        node.nodeType = NodeType.Select;
-        node.children.add(new NodeStructure(from));
+        ptr.children.add(new NodeStructure(from));
         return node;
     }
 }
