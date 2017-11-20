@@ -154,14 +154,12 @@ public class Visualizer {
     }
     
     static NodeStructure buildSelectNode(SelectFromWhereNode queryTree) {
-        NodeStructure node = new NodeStructure();
+        NodeStructure node = new NodeStructure(NodeType.Project);
         NodeStructure ptr = node;
-        ptr.nodeType = NodeType.Project;
-        StringJoiner sj = new StringJoiner(",");
-        for (String select:queryTree.selectList)
-            sj.add(select);
-        ptr.text.name = Unicode.PROJECT + " " + sj.toString();
         
+        for (String select:queryTree.selectList)
+            ptr.AddCondition(select);
+
         for (WhereNode w:queryTree.whereList) {
             ptr.children.add(buildWhereNode(w));
             ptr = ptr.children.get(0);
@@ -173,14 +171,10 @@ public class Visualizer {
             for (String[] relation:queryTree.joinOn) {
                 if (!tablesJoined.contains(relation[0])
                         && !tablesJoined.contains(relation[1])) {
-                    NodeStructure cartesianSubtree = new NodeStructure();
-                    NodeStructure selectSubtree = new NodeStructure();
-                    selectSubtree.nodeType = NodeType.Select;
-                    selectSubtree.conditions.add(relation[2]);
-                    selectSubtree.text.name = Unicode.SELECT + " " + relation[2];
+                    NodeStructure cartesianSubtree = new NodeStructure(NodeType.Cartesian);
+                    NodeStructure selectSubtree = new NodeStructure(NodeType.Select);
+                    selectSubtree.AddCondition(relation[2]);
                     
-                    cartesianSubtree.text.name = Unicode.CROSSPRODUCT;
-                    cartesianSubtree.nodeType = NodeType.Cartesian;
                     cartesianSubtree.children.add(buildFromNode(relation[0], queryTree.fromMap));
                     cartesianSubtree.children.add(buildFromNode(relation[1], queryTree.fromMap));
                     selectSubtree.children.add(cartesianSubtree);
@@ -201,14 +195,10 @@ public class Visualizer {
                             break;
                         }
                     }
-                    NodeStructure cartesianSubtree = new NodeStructure();
-                    NodeStructure selectSubtree = new NodeStructure();
-                    selectSubtree.nodeType = NodeType.Select;
-                    selectSubtree.conditions.add(relation[2]);
-                    selectSubtree.text.name = Unicode.SELECT + " " + relation[2];
+                    NodeStructure cartesianSubtree = new NodeStructure(NodeType.Cartesian);
+                    NodeStructure selectSubtree = new NodeStructure(NodeType.Select);
+                    selectSubtree.AddCondition(relation[2]);
                     
-                    cartesianSubtree.text.name = Unicode.CROSSPRODUCT;
-                    cartesianSubtree.nodeType = NodeType.Cartesian;
                     cartesianSubtree.children.add(pair.getKey());
                     cartesianSubtree.children.add(buildFromNode(relation[0], queryTree.fromMap));
                     selectSubtree.children.add(cartesianSubtree);
@@ -229,14 +219,10 @@ public class Visualizer {
                             break;
                         }
                     }
-                    NodeStructure cartesianSubtree = new NodeStructure();
-                    NodeStructure selectSubtree = new NodeStructure();
-                    selectSubtree.nodeType = NodeType.Select;
-                    selectSubtree.conditions.add(relation[2]);
-                    selectSubtree.text.name = Unicode.SELECT + " " + relation[2];
+                    NodeStructure cartesianSubtree = new NodeStructure(NodeType.Cartesian);
+                    NodeStructure selectSubtree = new NodeStructure(NodeType.Select);
+                    selectSubtree.AddCondition(relation[2]);
                     
-                    cartesianSubtree.text.name = Unicode.CROSSPRODUCT;
-                    cartesianSubtree.nodeType = NodeType.Cartesian;
                     cartesianSubtree.children.add(pair.getKey());
                     selectSubtree.children.add(cartesianSubtree);
                     cartesianSubtree.children.add(buildFromNode(relation[1], queryTree.fromMap));
@@ -266,14 +252,10 @@ public class Visualizer {
                             break;
                         }
                     }
-                    NodeStructure cartesianSubtree = new NodeStructure();
-                    NodeStructure selectSubtree = new NodeStructure();
-                    selectSubtree.nodeType = NodeType.Select;
-                    selectSubtree.conditions.add(relation[2]);
-                    selectSubtree.text.name = Unicode.SELECT + " " + relation[2];
+                    NodeStructure cartesianSubtree = new NodeStructure(NodeType.Cartesian);
+                    NodeStructure selectSubtree = new NodeStructure(NodeType.Select);
+                    selectSubtree.AddCondition(relation[2]);
                     
-                    cartesianSubtree.text.name = Unicode.CROSSPRODUCT;
-                    cartesianSubtree.nodeType = NodeType.Cartesian;
                     cartesianSubtree.children.add(left.getKey());
                     cartesianSubtree.children.add(right.getKey());
                     selectSubtree.children.add(cartesianSubtree);
@@ -295,13 +277,12 @@ public class Visualizer {
     }
     
     private static NodeStructure buildWhereNode(WhereNode where) {
-        NodeStructure node = new NodeStructure();
+        NodeStructure node = new NodeStructure(NodeType.Select);
         StringJoiner sj = new StringJoiner(" ");
         sj.add(where.exp1);
         sj.add(where.opr);
         sj.add(where.exp2);
-        node.text.name = Unicode.SELECT + " " + sj.toString();
-        node.nodeType = NodeType.Select;
+        node.AddCondition(sj.toString());
         return node;
     }
 

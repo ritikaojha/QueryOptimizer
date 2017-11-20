@@ -21,12 +21,12 @@ public class HeuristicOptimizer {
     private static NodeStructure CascadeSelect(NodeStructure nodeStruct){
         NodeStructure result = nodeStruct;
         if(!nodeStruct.children.isEmpty()){
-            if(nodeStruct.nodeType.equals(NodeType.Select) && nodeStruct.conditions.size() > 1){
+            if(nodeStruct.nodeType.equals(NodeType.Select) && nodeStruct.NumConditions() > 1){
                 result = nodeStruct.children.get(0);
-                for (int i = 0; i < nodeStruct.conditions.size(); i++){
+                for (int i = 0; i < nodeStruct.NumConditions(); i++){
                     NodeStructure temp = new NodeStructure(NodeType.Select);
-                    String cond = nodeStruct.conditions.get(i);
-                    temp.conditions.add(cond);
+                    String cond = nodeStruct.GetCondition(i);
+                    temp.AddCondition(cond);
                     temp.children.add(result);
                     temp.NodeToString();
                     result = temp;

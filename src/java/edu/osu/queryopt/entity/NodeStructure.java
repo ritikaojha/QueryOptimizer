@@ -18,7 +18,7 @@ public class NodeStructure implements Serializable {
     public enum NodeType { Project, Select, Join, Cartesian, Relation, None};
     public NodeType nodeType;
     public Text text;
-    public List<String> conditions;
+    private List<String> conditions;
     public List<NodeStructure> children;
     public int selectivity;                          //estimated execution cost
     public int size;                            //size of query
@@ -35,6 +35,8 @@ public class NodeStructure implements Serializable {
         children = new ArrayList();
         conditions = new ArrayList();
         UpdateSize();
+        StringToNode(name);
+        //NodeToString();
     }
     
     public NodeStructure(String name, NodeType type) {
@@ -53,6 +55,20 @@ public class NodeStructure implements Serializable {
         conditions = new ArrayList();
         nodeType = type;
         UpdateSize();
+        NodeToString();
+    }
+    
+    public void AddCondition(String c){
+        conditions.add(c);
+        NodeToString();
+    }
+    
+    public int NumConditions(){
+        return conditions.size();
+    }
+    
+    public String GetCondition(int i){
+        return conditions.get(i);
     }
     
     //TO be implemented
@@ -86,18 +102,22 @@ public class NodeStructure implements Serializable {
         String result = "";
         String separator = " ";
         
-        if(nodeType.equals(NodeType.Select)){
-            separator = " AND";
-            result = Unicode.SELECT;
-        } else if (nodeType.equals(NodeType.Project)) {
-            separator = ",";
-            result = Unicode.PROJECT;
-        }
-        for (int i = 0; i < conditions.size(); i++){
-            if(i > 0 && i < conditions.size()){
-                result += separator;
+        if (nodeType.equals(NodeType.Cartesian)) {
+            result = Unicode.CROSSPRODUCT;
+        } else {
+            if(nodeType.equals(NodeType.Select)){
+                separator = " AND";
+                result = Unicode.SELECT;
+            } else if (nodeType.equals(NodeType.Project)) {
+                separator = ",";
+                result = Unicode.PROJECT;
             }
-            result += " " + conditions.get(i);
+            for (int i = 0; i < conditions.size(); i++){
+                if(i > 0 && i < conditions.size()){
+                    result += separator;
+                }
+                result += " " + conditions.get(i);
+            }
         }
         text.name = result;
     }
@@ -107,10 +127,12 @@ public class NodeStructure implements Serializable {
         if(str.contains("WHERE")){
             str = str.replaceAll("WHERE\\s+", "");
             rawTokens = str.split("\\s+AND\\s+");
+            nodeType = NodeType.Select;
         }
         else if(str.contains("SELECT")){
             str = str.replaceAll("SELECT\\s+", "");
             rawTokens = str.split(",\\s+");
+            nodeType = NodeType.Project;
         }
          
         for (int i = 0; i < rawTokens.length; i++){
