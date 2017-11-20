@@ -29,7 +29,6 @@ import java.util.logging.Logger;
  * @author ritika
  */
 public class Visualizer {
-    
     static Set<String> keywords = new HashSet<>(Arrays.asList("SELECT", "FROM", "WHERE", "AND"));
     
     static Config buildExpressionTree(String query) {
@@ -161,7 +160,7 @@ public class Visualizer {
         StringJoiner sj = new StringJoiner(",");
         for (String select:queryTree.selectList)
             sj.add(select);
-        ptr.text.name = "\u03C0 " + sj.toString();
+        ptr.text.name = Unicode.PROJECT + " " + sj.toString();
         
         for (WhereNode w:queryTree.whereList) {
             ptr.children.add(buildWhereNode(w));
@@ -174,14 +173,20 @@ public class Visualizer {
             for (String[] relation:queryTree.joinOn) {
                 if (!tablesJoined.contains(relation[0])
                         && !tablesJoined.contains(relation[1])) {
-                    NodeStructure temp = new NodeStructure();
-                    temp.text.name = "\u22C8 " + relation[2];
-                    temp.nodeType = NodeType.Cartesian;
-                    temp.children.add(buildFromNode(relation[0], queryTree.fromMap));
-                    temp.children.add(buildFromNode(relation[1], queryTree.fromMap));
-                    tempNodes.put(temp, new HashSet<>());
-                    tempNodes.get(temp).add(relation[0]);
-                    tempNodes.get(temp).add(relation[1]);
+                    NodeStructure cartesianSubtree = new NodeStructure();
+                    NodeStructure selectSubtree = new NodeStructure();
+                    selectSubtree.nodeType = NodeType.Select;
+                    selectSubtree.conditions.add(relation[2]);
+                    selectSubtree.text.name = Unicode.SELECT + " " + relation[2];
+                    
+                    cartesianSubtree.text.name = Unicode.CROSSPRODUCT;
+                    cartesianSubtree.nodeType = NodeType.Cartesian;
+                    cartesianSubtree.children.add(buildFromNode(relation[0], queryTree.fromMap));
+                    cartesianSubtree.children.add(buildFromNode(relation[1], queryTree.fromMap));
+                    selectSubtree.children.add(cartesianSubtree);
+                    tempNodes.put(selectSubtree, new HashSet<>());
+                    tempNodes.get(selectSubtree).add(relation[0]);
+                    tempNodes.get(selectSubtree).add(relation[1]);
                     tablesJoined.add(relation[0]);
                     tablesJoined.add(relation[1]);
                 }
@@ -196,15 +201,21 @@ public class Visualizer {
                             break;
                         }
                     }
-                    NodeStructure temp = new NodeStructure();
-                    temp.text.name = "\u22C8 " + relation[2];
-                    temp.nodeType = NodeType.Cartesian;
-                    temp.children.add(pair.getKey());
-                    temp.children.add(buildFromNode(relation[0], queryTree.fromMap));
-                    tempNodes.put(temp, new HashSet<>());
-                    tempNodes.get(temp).add(relation[0]);
+                    NodeStructure cartesianSubtree = new NodeStructure();
+                    NodeStructure selectSubtree = new NodeStructure();
+                    selectSubtree.nodeType = NodeType.Select;
+                    selectSubtree.conditions.add(relation[2]);
+                    selectSubtree.text.name = Unicode.SELECT + " " + relation[2];
+                    
+                    cartesianSubtree.text.name = Unicode.CROSSPRODUCT;
+                    cartesianSubtree.nodeType = NodeType.Cartesian;
+                    cartesianSubtree.children.add(pair.getKey());
+                    cartesianSubtree.children.add(buildFromNode(relation[0], queryTree.fromMap));
+                    selectSubtree.children.add(cartesianSubtree);
+                    tempNodes.put(selectSubtree, new HashSet<>());
+                    tempNodes.get(selectSubtree).add(relation[0]);
                     for (String table:pair.getValue())
-                        tempNodes.get(temp).add(table);
+                        tempNodes.get(selectSubtree).add(table);
                     tablesJoined.add(relation[0]);
                 }
                 else if (!tablesJoined.contains(relation[1])){
@@ -218,15 +229,21 @@ public class Visualizer {
                             break;
                         }
                     }
-                    NodeStructure temp = new NodeStructure();
-                    temp.text.name = "\u22C8 " + relation[2];
-                    temp.nodeType = NodeType.Cartesian;
-                    temp.children.add(pair.getKey());
-                    temp.children.add(buildFromNode(relation[1], queryTree.fromMap));
-                    tempNodes.put(temp, new HashSet<>());
-                    tempNodes.get(temp).add(relation[1]);
+                    NodeStructure cartesianSubtree = new NodeStructure();
+                    NodeStructure selectSubtree = new NodeStructure();
+                    selectSubtree.nodeType = NodeType.Select;
+                    selectSubtree.conditions.add(relation[2]);
+                    selectSubtree.text.name = Unicode.SELECT + " " + relation[2];
+                    
+                    cartesianSubtree.text.name = Unicode.CROSSPRODUCT;
+                    cartesianSubtree.nodeType = NodeType.Cartesian;
+                    cartesianSubtree.children.add(pair.getKey());
+                    selectSubtree.children.add(cartesianSubtree);
+                    cartesianSubtree.children.add(buildFromNode(relation[1], queryTree.fromMap));
+                    tempNodes.put(selectSubtree, new HashSet<>());
+                    tempNodes.get(selectSubtree).add(relation[1]);
                     for (String table:pair.getValue())
-                        tempNodes.get(temp).add(table);
+                        tempNodes.get(selectSubtree).add(table);
                     tablesJoined.add(relation[1]);
                 }
                 else {
@@ -249,16 +266,22 @@ public class Visualizer {
                             break;
                         }
                     }
-                    NodeStructure temp = new NodeStructure();
-                    temp.text.name = "\u22C8 " + relation[2];
-                    temp.nodeType = NodeType.Cartesian;
-                    temp.children.add(left.getKey());
-                    temp.children.add(right.getKey());
-                    tempNodes.put(temp, new HashSet<>());
+                    NodeStructure cartesianSubtree = new NodeStructure();
+                    NodeStructure selectSubtree = new NodeStructure();
+                    selectSubtree.nodeType = NodeType.Select;
+                    selectSubtree.conditions.add(relation[2]);
+                    selectSubtree.text.name = Unicode.SELECT + " " + relation[2];
+                    
+                    cartesianSubtree.text.name = Unicode.CROSSPRODUCT;
+                    cartesianSubtree.nodeType = NodeType.Cartesian;
+                    cartesianSubtree.children.add(left.getKey());
+                    cartesianSubtree.children.add(right.getKey());
+                    selectSubtree.children.add(cartesianSubtree);
+                    tempNodes.put(selectSubtree, new HashSet<>());
                     for (String table:left.getValue())
-                        tempNodes.get(temp).add(table);
+                        tempNodes.get(selectSubtree).add(table);
                     for (String table:left.getValue())
-                        tempNodes.get(temp).add(table);
+                        tempNodes.get(selectSubtree).add(table);
                 }
             }
             for (NodeStructure joinChild:tempNodes.keySet())
@@ -277,7 +300,7 @@ public class Visualizer {
         sj.add(where.exp1);
         sj.add(where.opr);
         sj.add(where.exp2);
-        node.text.name = "\u03C3 " + sj.toString();
+        node.text.name = Unicode.SELECT + " " + sj.toString();
         node.nodeType = NodeType.Select;
         return node;
     }

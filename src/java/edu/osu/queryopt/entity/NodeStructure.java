@@ -4,6 +4,7 @@
  * and open the template in the editor.
  */
 package edu.osu.queryopt.entity;
+import edu.osu.queryopt.Unicode;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -87,10 +88,10 @@ public class NodeStructure implements Serializable {
         
         if(nodeType.equals(NodeType.Select)){
             separator = " AND";
-            result = "\u03C3";
+            result = Unicode.SELECT;
         } else if (nodeType.equals(NodeType.Project)) {
             separator = ",";
-            result = "\u03C0";
+            result = Unicode.PROJECT;
         }
         for (int i = 0; i < conditions.size(); i++){
             if(i > 0 && i < conditions.size()){
