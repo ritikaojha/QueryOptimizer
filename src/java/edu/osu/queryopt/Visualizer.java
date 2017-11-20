@@ -265,7 +265,7 @@ public class Visualizer {
 
     private static NodeStructure buildFromNode(String from, Map<String, List<WhereNode>> fromMap) {
         if (fromMap.get(from).isEmpty())
-            return new NodeStructure(from, NodeType.Relation);
+            return new NodeStructure(from);
         NodeStructure node = new NodeStructure();
         StringJoiner sj = new StringJoiner(" ");
         for (WhereNode where:fromMap.get(from)) {
@@ -275,7 +275,7 @@ public class Visualizer {
         }
         node.text.name = "\u03C3 " + sj.toString();
         node.nodeType = NodeType.Select;
-        node.children.add(new NodeStructure(from, NodeType.Relation));
+        node.children.add(new NodeStructure(from));
         return node;
     }
 }
