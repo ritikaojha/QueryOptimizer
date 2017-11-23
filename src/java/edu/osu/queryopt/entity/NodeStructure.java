@@ -71,6 +71,10 @@ public class NodeStructure implements Serializable {
         return conditions.get(i);
     }
     
+    public boolean HasCondition(String c){
+        return conditions.contains(c);
+    }
+    
     //TO be implemented
     public void UpdateSize(){
         if(children.size() == 0) //leaf node
@@ -99,27 +103,28 @@ public class NodeStructure implements Serializable {
     }
     
     public void NodeToString(){
-        String result = "";
-        String separator = " ";
-        
-        if (nodeType.equals(NodeType.Cartesian)) {
-            result = Unicode.CROSSPRODUCT;
-        } else {
-            if(nodeType.equals(NodeType.Select)){
-                separator = " AND";
-                result = Unicode.SELECT;
-            } else if (nodeType.equals(NodeType.Project)) {
-                separator = ",";
-                result = Unicode.PROJECT;
-            }
-            for (int i = 0; i < conditions.size(); i++){
-                if(i > 0 && i < conditions.size()){
-                    result += separator;
+        if(!nodeType.equals(NodeType.Relation)){
+            String result = "";
+            String separator = " ";
+            if (nodeType.equals(NodeType.Cartesian)) {
+                result = Unicode.CROSSPRODUCT;
+            } else {
+                if(nodeType.equals(NodeType.Select)){
+                    separator = " AND";
+                    result = Unicode.SELECT;
+                } else if (nodeType.equals(NodeType.Project)) {
+                    separator = ",";
+                    result = Unicode.PROJECT;
                 }
-                result += " " + conditions.get(i);
+                for (int i = 0; i < conditions.size(); i++){
+                    if(i > 0 && i < conditions.size()){
+                        result += separator;
+                    }
+                    result += " " + conditions.get(i);
+                }
             }
+            text.name = result;
         }
-        text.name = result;
     }
     
     private void StringToNode(String str){

@@ -288,7 +288,7 @@ public class Visualizer {
 
     private static NodeStructure buildFromNode(String from, Map<String, List<WhereNode>> fromMap) {
         if (fromMap.get(from).isEmpty())
-            return new NodeStructure(from);
+            return new NodeStructure(from, NodeType.Relation);
         NodeStructure node = null;
         NodeStructure ptr = node;
         for (WhereNode where:fromMap.get(from)) {

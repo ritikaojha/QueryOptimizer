@@ -15,6 +15,7 @@ public class HeuristicOptimizer {
         NodeStructure result;
         result = CascadeSelect(nodeStruct);
         result = CascadeProject(result);
+        result = CommuteSelect("C.X = 0", result);
         return result;
     }
     
@@ -50,6 +51,21 @@ public class HeuristicOptimizer {
             }
             for (int i = 0; i < nodeStruct.children.size(); i++){
                 nodeStruct.children.add(i, CascadeProject(nodeStruct.children.remove(i)));
+            }
+        }
+        return result;
+    }
+    //Pushes down select with condition by commuting between selections
+    private static NodeStructure CommuteSelect(String condition, NodeStructure nodeStruct){
+        NodeStructure result = nodeStruct;
+        if(nodeStruct.nodeType.equals(NodeType.Select) && nodeStruct.HasCondition(condition)){
+            NodeStructure targetSelect = nodeStruct;
+            result = targetSelect.children.remove(0);
+            targetSelect.children.add(result.children.remove(0));
+            result.children.add(targetSelect);
+        } else {
+            for (int i = 0; i < nodeStruct.children.size(); i++){
+                nodeStruct.children.add(i, CommuteSelect(condition, nodeStruct.children.remove(i)));
             }
         }
         return result;
