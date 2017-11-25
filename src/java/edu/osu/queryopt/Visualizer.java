@@ -31,8 +31,8 @@ import java.util.logging.Logger;
 public class Visualizer {
     static Set<String> keywords = new HashSet<>(Arrays.asList("SELECT", "FROM", "WHERE", "AND"));
     
-    static Config buildExpressionTree(String query) {
-        Config config = new Config();
+    static List<Config> buildExpressionTree(String query) {
+        List<Config> config = new ArrayList();
         String[] rawTokens = query.toUpperCase()
                 .replace("=", " = ")
                 .replace(",", " , ")
@@ -45,7 +45,10 @@ public class Visualizer {
             //Schema.Initialize();
             queryTree = buildQueryTree(tokens);
             NodeStructure node = buildSelectNode(queryTree);
-            config.nodeStructure = HeuristicOptimizer.Optimize(node);
+            config.add(new Config(node));
+            List<NodeStructure> nodeList = HeuristicOptimizer.Optimize(node);
+            for (NodeStructure n:nodeList)
+                config.add(new Config(n));
             return config;
         } catch (Exception ex) {
             Logger.getLogger(Visualizer.class.getName()).log(Level.SEVERE, null, ex);

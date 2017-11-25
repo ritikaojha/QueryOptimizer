@@ -8,6 +8,8 @@ package edu.osu.queryopt;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import edu.osu.queryopt.entity.Config;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
@@ -15,9 +17,12 @@ import edu.osu.queryopt.entity.Config;
  */
 public class SessionHandler {
     
-    public String getExpressionTree(String query) {
-        Config config = Visualizer.buildExpressionTree(query);
+    public List<String> getExpressionTree(String query) {
+        List<Config> configList = Visualizer.buildExpressionTree(query);
         Gson gson = new GsonBuilder().create();
-        return gson.toJson(config);
+        List<String> outputTrees = new ArrayList<>();
+        for (Config config: configList)
+            outputTrees.add(gson.toJson(config));
+        return outputTrees;
     }
 }
