@@ -45,7 +45,9 @@ public class Visualizer {
             queryTree = buildQueryTree(tokens);
             NodeStructure node = buildSelectNode(queryTree);
             config.add(new Config(node));
-            //config.add(new Config(HeuristicOptimizer.Optimize(node)));
+            List<NodeStructure> nodeList = HeuristicOptimizer.Optimize(node);
+            for (NodeStructure n:nodeList)
+                config.add(new Config(n));
             return config;
         } catch (Exception ex) {
             Logger.getLogger(Visualizer.class.getName()).log(Level.SEVERE, null, ex);
