@@ -55,6 +55,7 @@ public class HeuristicOptimizer {
         }
         return result;
     }
+    
     //Pushes down select with condition by commuting between selections
     private static NodeStructure CommuteSelect(String condition, NodeStructure nodeStruct){
         NodeStructure result = nodeStruct;
@@ -69,5 +70,56 @@ public class HeuristicOptimizer {
             }
         }
         return result;
+    }
+    //not tested
+    private static NodeStructure CommuteSelectJoin(String condition, NodeStructure nodeStruct){
+        NodeStructure result = nodeStruct;
+        if(nodeStruct.nodeType.equals(NodeType.Select) && nodeStruct.HasCondition(condition)
+                && (nodeStruct.children.get(0).nodeType.equals(NodeType.Join) 
+                || nodeStruct.children.get(0).nodeType.equals(NodeType.Cartesian))){
+            
+            NodeStructure targetSelect = nodeStruct;
+            result = targetSelect.children.remove(0);
+            if(!result.children.get(0).nodeType.equals(NodeType.Relation)
+                    || result.children.get(0).text.equals(GetRelation(condition))){
+                
+                targetSelect.children.add(0, result.children.remove(0));
+                result.children.add(0, targetSelect);
+            }
+            
+            if(!result.children.get(1).nodeType.equals(NodeType.Relation)
+                    || result.children.get(1).text.equals(GetRelation(condition))){
+                
+                targetSelect.children.add(1, result.children.remove(1));
+                result.children.add(1, targetSelect);
+            }
+        } else {
+            for (int i = 0; i < nodeStruct.children.size(); i++){
+                nodeStruct.children.add(i, CommuteSelectJoin(condition, nodeStruct.children.remove(i)));
+            }
+        }
+        return result;
+    }
+    /*
+    //returns struct with select removed. original nodestruct param will have removed select statement
+    private static NodeStructure RemoveSelect(String condition, NodeStructure nodeStruct){
+        NodeStructure result = nodeStruct;
+        if(nodeStruct.nodeType.equals(NodeType.Select) && nodeStruct.HasCondition(condition)){
+            result = nodeStruct.children.remove(0);
+        } else {
+            for (int i = 0; i < nodeStruct.children.size(); i++){
+                nodeStruct.children.add(i, RemoveSelect(condition, nodeStruct.children.remove(i)));
+            }
+        }
+        return result;
+    }
+    
+    private boolean ContainsAttribute(String attribute, String relation){
+        return true;
+    }*/
+    
+    private static String GetRelation(String condition){
+        String[] tokens = condition.split(".");
+        return tokens[0].toUpperCase();
     }
 }

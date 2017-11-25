@@ -5,6 +5,8 @@
  */
 package edu.osu.queryopt;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 import javax.xml.transform.Result;
 /**
  *
@@ -16,7 +18,31 @@ public class SQLConnection {
     private static Statement stmt = null;
     private static ResultSet rs = null;
     
-    public static void Connect() {
+    public static List<List<String>> Query(String query, int numCols){
+        Connect();
+        List<List<String>> result = null;
+        rs = null;
+        try {
+            stmt = con.createStatement();
+            rs = stmt.executeQuery(query);
+            result = new ArrayList<>();
+            // Iterate through the data in the result set and display it.
+            while (rs.next()) {
+                List<String> row = new ArrayList<>();
+                for(int i = 1; i <= numCols; i++){
+                    row.add(rs.getString(i));
+                }
+                result.add(row);
+            }
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+        Disconnect();
+        return result;
+    }
+    
+    private static void Connect() {
 		
         // Create a variable for the connection string.
         String connectionUrl = "jdbc:sqlserver://localhost:1433;" +  
@@ -36,26 +62,7 @@ public class SQLConnection {
         }
     }
     
-    public static ResultSet Query(String query){
-        Connect();
-        rs = null;
-        try {
-            stmt = con.createStatement();
-            rs = stmt.executeQuery(query);
-
-            // Iterate through the data in the result set and display it.
-            while (rs.next()) {
-                System.out.println(rs.getString(4) + " " + rs.getString(6));
-            }
-        }
-        catch (Exception e){
-            e.printStackTrace();
-        }
-        Disconnect();
-        return rs;
-    }
-    
-    public static void Disconnect(){
+    private static void Disconnect(){
         if (rs != null) try { rs.close(); } catch(Exception e) {}
         if (stmt != null) try { stmt.close(); } catch(Exception e) {}
         if (con != null) try { con.close(); } catch(Exception e) {}
