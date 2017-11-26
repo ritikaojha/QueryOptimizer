@@ -18,7 +18,7 @@ public class NodeStructure implements Serializable {
     public enum NodeType { Project, Select, Join, Cartesian, Relation, None};
     public NodeType nodeType;
     public Text text;
-    private List<String> conditions;
+    private List<Condition> conditions;
     public List<NodeStructure> children;
     public int selectivity;                          //estimated execution cost
     public int size;                            //size of query
@@ -58,8 +58,13 @@ public class NodeStructure implements Serializable {
         NodeToString();
     }
     
-    public void AddCondition(String c){
-        conditions.add(c);
+    public void AddCondition(String a){
+        conditions.add(new Condition(a));
+        NodeToString();
+    }
+    
+    public void AddCondition(String a1, String a2, String op){
+        conditions.add(new Condition(a1, a2, op));
         NodeToString();
     }
     
@@ -67,7 +72,7 @@ public class NodeStructure implements Serializable {
         return conditions.size();
     }
     
-    public String GetCondition(int i){
+    public Condition GetCondition(int i){
         return conditions.get(i);
     }
     
@@ -120,7 +125,7 @@ public class NodeStructure implements Serializable {
                     if(i > 0 && i < conditions.size()){
                         result += separator;
                     }
-                    result += " " + conditions.get(i);
+                    result += " " + conditions.get(i).toString();
                 }
             }
             text.name = result;
@@ -142,7 +147,7 @@ public class NodeStructure implements Serializable {
          
         for (int i = 0; i < rawTokens.length; i++){
             if(!conditions.contains(rawTokens[i]))
-                conditions.add(rawTokens[i]);
+                AddCondition(rawTokens[i]);
         }
     }
 }

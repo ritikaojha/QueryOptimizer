@@ -31,7 +31,7 @@ public class HeuristicOptimizer {
             result = nodeStruct.children.get(0);
                 for (int i = 0; i < nodeStruct.NumConditions(); i++){
                     NodeStructure temp = new NodeStructure(NodeType.Select);
-                    String cond = nodeStruct.GetCondition(i);
+                    String cond = nodeStruct.GetCondition(i).toString();
                     temp.AddCondition(cond);
                     temp.children.add(result);
                     temp.NodeToString();

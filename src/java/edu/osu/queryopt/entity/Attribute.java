@@ -19,9 +19,9 @@ public class Attribute {
     
     public Attribute(String str){
         String[] tokens = str.split(".");
-        if(tokens.length == 1){
+        if(tokens.length == 0){
             relation = "";
-            attribute = tokens[0];
+            attribute = str;
         } else {
             relation = tokens[0];
             attribute = tokens[1];

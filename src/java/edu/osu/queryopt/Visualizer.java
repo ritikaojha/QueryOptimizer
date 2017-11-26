@@ -169,7 +169,7 @@ public class Visualizer {
 
         NodeStructure whereNode = new NodeStructure(NodeType.Select);
         for (WhereNode w:queryTree.whereList) {
-            whereNode.AddCondition(buildWhereCondition(w));
+            whereNode.AddCondition(w.exp1, w.exp2, w.opr);
             //ptr.children.add(buildWhereCondition(w));
             //ptr = ptr.children.get(0);
         }
@@ -300,7 +300,7 @@ public class Visualizer {
         //}
         return node;
     }
-    
+    /*
     private static String buildWhereCondition(WhereNode where) {
         StringJoiner sj = new StringJoiner(" ");
         sj.add(where.exp1);
@@ -308,7 +308,7 @@ public class Visualizer {
         sj.add(where.exp2);
         return sj.toString();
     }
-    /*
+    
     private static NodeStructure buildWhereNode(WhereNode where) {
         NodeStructure node = new NodeStructure(NodeType.Select);
         StringJoiner sj = new StringJoiner(" ");
@@ -328,7 +328,7 @@ public class Visualizer {
             if (node == null) {
                 node = new NodeStructure(NodeType.Select);
             }
-            node.AddCondition(buildWhereCondition(where));
+            node.AddCondition(where.exp1, where.exp2, where.opr);
             //else {
                 //ptr.children.add(buildWhereNode(where));
                 //ptr = ptr.children.get(0);
