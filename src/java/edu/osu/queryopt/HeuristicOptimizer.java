@@ -17,8 +17,10 @@ public class HeuristicOptimizer {
         List<NodeStructure> result = new ArrayList<>();
         result.add(CascadeSelect(nodeStruct));
         result.add(CascadeProject(result.get(result.size()-1)));
-        result.add(CommuteSelect("C.X = 0", result.get(result.size()-1)));
-        //result.add(CommuteSelectJoin("C.X = 0", result.get(result.size()-1)));
+        //result.add(CommuteSelect("C.X = 0", result.get(result.size()-1)));
+        //result.add(CommuteSelect("C.X = 0", result.get(result.size()-1)));
+        //result.add(CommuteSelectJoin("B.X = C.X", result.get(result.size()-1)));
+        //result.add(CommuteSelectJoin("B.X = C.X", result.get(result.size()-1)));
         return result;
     }
     
@@ -74,8 +76,7 @@ public class HeuristicOptimizer {
         }
         return result;
     }
-    
-    //not tested
+
     private static NodeStructure CommuteSelectJoin(String condition, NodeStructure nodeStruct){
         NodeStructure result = nodeStruct;
         if(nodeStruct.nodeType.equals(NodeType.Select) && nodeStruct.HasCondition(condition)
@@ -84,19 +85,15 @@ public class HeuristicOptimizer {
             
             NodeStructure targetSelect = nodeStruct;
             result = targetSelect.children.remove(0);
-            if(!result.children.get(0).nodeType.equals(NodeType.Relation)
-                    || result.children.get(0).text.equals(GetRelation(condition))){
-                
-                targetSelect.children.add(0, result.children.remove(0));
-                result.children.add(0, targetSelect);
-            }
             
             if(!result.children.get(1).nodeType.equals(NodeType.Relation)
-                    || result.children.get(1).text.equals(GetRelation(condition))){
-                
-                targetSelect.children.add(1, result.children.remove(1));
+                    || !result.children.get(1).text.name.equals(GetRelation(condition))){
+                targetSelect.children.add(0, result.children.remove(0));
+                result.children.add(0, targetSelect);
+            } else {
+                targetSelect.children.add(0, result.children.remove(1));
                 result.children.add(1, targetSelect);
-            }
+            }         
         } else {
             for (int i = 0; i < nodeStruct.children.size(); i++){
                 nodeStruct.children.add(i, CommuteSelectJoin(condition, nodeStruct.children.remove(i)));
@@ -104,26 +101,9 @@ public class HeuristicOptimizer {
         }
         return result;
     }
-    /*
-    //returns struct with select removed. original nodestruct param will have removed select statement
-    private static NodeStructure RemoveSelect(String condition, NodeStructure nodeStruct){
-        NodeStructure result = nodeStruct;
-        if(nodeStruct.nodeType.equals(NodeType.Select) && nodeStruct.HasCondition(condition)){
-            result = nodeStruct.children.remove(0);
-        } else {
-            for (int i = 0; i < nodeStruct.children.size(); i++){
-                nodeStruct.children.add(i, RemoveSelect(condition, nodeStruct.children.remove(i)));
-            }
-        }
-        return result;
-    }
-    
-    private boolean ContainsAttribute(String attribute, String relation){
-        return true;
-    }*/
     
     private static String GetRelation(String condition){
-        String[] tokens = condition.split(".");
+        String[] tokens = condition.split("\\.");
         return tokens[0].toUpperCase();
     }
 }

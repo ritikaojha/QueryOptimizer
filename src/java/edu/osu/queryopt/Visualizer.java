@@ -42,7 +42,7 @@ public class Visualizer {
         Queue<String> tokens = new LinkedList<>(Arrays.asList(rawTokens));
         SelectFromWhereNode queryTree;
         try {
-            Schema.Initialize();
+            //Schema.Initialize();
             queryTree = buildQueryTree(tokens);
             NodeStructure node = buildSelectNode(queryTree);
             config.add(new Config(node));
