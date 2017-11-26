@@ -42,7 +42,7 @@ public class Visualizer {
         Queue<String> tokens = new LinkedList<>(Arrays.asList(rawTokens));
         SelectFromWhereNode queryTree;
         try {
-            //Schema.Initialize();
+            Schema.Initialize();
             queryTree = buildQueryTree(tokens);
             NodeStructure node = buildSelectNode(queryTree);
             config.add(new Config(node));
@@ -143,16 +143,19 @@ public class Visualizer {
                 table2 = exp2.split("\\.")[0];
             }
             
-            if (table1 != null
+           /* if (table1 != null
                     && table2 != null
                     && query.fromMap.containsKey(table1)
                     && query.fromMap.containsKey(table2))
                 query.joinOn.add(new String[]{table1, table2,
                         exp1 + " " + opr + " " + exp2});
+                
             else {
                 query.whereList.add(
                         new WhereNode(exp1, queryExp1, opr, exp2, queryExp2));
-            }
+            }*/
+            query.whereList.add(
+                        new WhereNode(exp1, queryExp1, opr, exp2, queryExp2));
         }
         return query;
     }
@@ -164,11 +167,15 @@ public class Visualizer {
         for (String select:queryTree.selectList)
             ptr.AddCondition(select);
 
+        NodeStructure whereNode = new NodeStructure(NodeType.Select);
         for (WhereNode w:queryTree.whereList) {
-            ptr.children.add(buildWhereNode(w));
-            ptr = ptr.children.get(0);
+            whereNode.AddCondition(buildWhereCondition(w));
+            //ptr.children.add(buildWhereCondition(w));
+            //ptr = ptr.children.get(0);
         }
-        
+        ptr.children.add(whereNode);
+        ptr = ptr.children.get(0);
+        /*
         if (!queryTree.joinOn.isEmpty()) {
             Set<String> tablesJoined = new HashSet<>();
             Map<NodeStructure, Set<String>> tempNodes = new HashMap<>();
@@ -273,13 +280,35 @@ public class Visualizer {
             for (NodeStructure joinChild:tempNodes.keySet())
                 ptr.children.add(joinChild);
         }
-        else {
-            for (String from:queryTree.fromMap.keySet())
-            ptr.children.add(buildFromNode(from, queryTree.fromMap));
-        }
+        else {*/
+            NodeStructure fromNode = new NodeStructure(NodeType.Cartesian);
+            int counter = 0;
+            for (String from:queryTree.fromMap.keySet()){
+                if(counter < 2){
+                    fromNode.children.add(buildFromNode(from, queryTree.fromMap));
+                    counter++;
+                }
+                else {
+                    //create left deep join
+                    NodeStructure temp = new NodeStructure(NodeType.Cartesian);
+                    temp.children.add(fromNode);
+                    temp.children.add(buildFromNode(from, queryTree.fromMap));
+                    fromNode = temp;
+                }
+            }
+            ptr.children.add(fromNode);
+        //}
         return node;
     }
     
+    private static String buildWhereCondition(WhereNode where) {
+        StringJoiner sj = new StringJoiner(" ");
+        sj.add(where.exp1);
+        sj.add(where.opr);
+        sj.add(where.exp2);
+        return sj.toString();
+    }
+    /*
     private static NodeStructure buildWhereNode(WhereNode where) {
         NodeStructure node = new NodeStructure(NodeType.Select);
         StringJoiner sj = new StringJoiner(" ");
@@ -288,7 +317,7 @@ public class Visualizer {
         sj.add(where.exp2);
         node.AddCondition(sj.toString());
         return node;
-    }
+    }*/
 
     private static NodeStructure buildFromNode(String from, Map<String, List<WhereNode>> fromMap) {
         if (fromMap.get(from).isEmpty())
@@ -297,13 +326,15 @@ public class Visualizer {
         NodeStructure ptr = node;
         for (WhereNode where:fromMap.get(from)) {
             if (node == null) {
-                node = buildWhereNode(where);
+                node = new NodeStructure(NodeType.Select);
             }
-            else {
-                ptr.children.add(buildWhereNode(where));
-                ptr = ptr.children.get(0);
-            }
+            node.AddCondition(buildWhereCondition(where));
+            //else {
+                //ptr.children.add(buildWhereNode(where));
+                //ptr = ptr.children.get(0);
+            //}
         }
+        ptr = ptr.children.get(0);
         ptr.children.add(new NodeStructure(from));
         return node;
     }
