@@ -4,6 +4,7 @@
  * and open the template in the editor.
  */
 package edu.osu.queryopt;
+import edu.osu.queryopt.entity.Attribute;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,5 +35,18 @@ public class Schema {
             }
         }
         return result;
+    }
+    
+    public static boolean AttrInRelation(Attribute attr, String rel){
+        String relation = attr.GetRelation();
+        if(relation.isEmpty() && !schema.isEmpty()){
+            for (List<String> pair:schema){
+                if(pair.get(0).equals(rel) && attr.ToString().equals(pair.get(1)))
+                    return true;
+            }
+        } else if (relation.equals(rel)){
+            return true;
+        }
+        return false;
     }
 }

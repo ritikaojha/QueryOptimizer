@@ -5,6 +5,7 @@
  */
 package edu.osu.queryopt.entity;
 import edu.osu.queryopt.Unicode;
+import edu.osu.queryopt.entity.Condition.ConditionType;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,13 +59,18 @@ public class NodeStructure implements Serializable {
         NodeToString();
     }
     
+    public void AddCondition(Condition c){
+        conditions.add(c);
+        NodeToString();
+    }
+    
     public void AddCondition(String a){
         conditions.add(new Condition(a));
         NodeToString();
     }
     
-    public void AddCondition(String a1, String a2, String op){
-        conditions.add(new Condition(a1, a2, op));
+    public void AddCondition(String a1, String a2, String op, ConditionType ct){
+        conditions.add(new Condition(a1, a2, op, ct));
         NodeToString();
     }
     
@@ -76,8 +82,14 @@ public class NodeStructure implements Serializable {
         return conditions.get(i);
     }
     
-    public boolean HasCondition(String c){
-        return conditions.contains(c);
+    public boolean HasCondition(Condition c){
+        boolean result = false;
+        for (Condition cond:conditions){
+            if(cond.ConditionEquals(c)){
+                result = true;
+            }
+        }
+        return result;
     }
     
     //TO be implemented
@@ -107,7 +119,7 @@ public class NodeStructure implements Serializable {
         
     }
     
-    public void NodeToString(){
+    private void NodeToString(){
         if(!nodeType.equals(NodeType.Relation)){
             String result = "";
             String separator = " ";
@@ -125,7 +137,7 @@ public class NodeStructure implements Serializable {
                     if(i > 0 && i < conditions.size()){
                         result += separator;
                     }
-                    result += " " + conditions.get(i).toString();
+                    result += " " + conditions.get(i).ToString();
                 }
             }
             text.name = result;

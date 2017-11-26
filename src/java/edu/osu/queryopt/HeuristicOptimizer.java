@@ -4,6 +4,8 @@
  * and open the template in the editor.
  */
 package edu.osu.queryopt;
+import edu.osu.queryopt.entity.Condition;
+import edu.osu.queryopt.entity.Condition.ConditionType;
 import edu.osu.queryopt.entity.NodeStructure;
 import edu.osu.queryopt.entity.NodeStructure.NodeType;
 import java.util.ArrayList;
@@ -17,10 +19,12 @@ public class HeuristicOptimizer {
         List<NodeStructure> result = new ArrayList<>();
         result.add(CascadeSelect(nodeStruct));
         result.add(CascadeProject(result.get(result.size()-1)));
-        //result.add(CommuteSelect("C.X = 0", result.get(result.size()-1)));
-        //result.add(CommuteSelect("C.X = 0", result.get(result.size()-1)));
-        //result.add(CommuteSelectJoin("B.X = C.X", result.get(result.size()-1)));
-        //result.add(CommuteSelectJoin("B.X = C.X", result.get(result.size()-1)));
+        //Condition c = new Condition("B.X", "C.X", "=", ConditionType.Join);
+        //Condition c = new Condition("C.X", "0", "=", ConditionType.Select);
+        //result.add(CommuteSelect(c, result.get(result.size()-1)));
+        //result.add(CommuteSelect(c, result.get(result.size()-1)));
+        //result.add(CommuteSelectJoin(c, result.get(result.size()-1)));
+        //result.add(CommuteSelectJoin(c, result.get(result.size()-1)));
         return result;
     }
     
@@ -31,10 +35,8 @@ public class HeuristicOptimizer {
             result = nodeStruct.children.get(0);
                 for (int i = 0; i < nodeStruct.NumConditions(); i++){
                     NodeStructure temp = new NodeStructure(NodeType.Select);
-                    String cond = nodeStruct.GetCondition(i).toString();
-                    temp.AddCondition(cond);
+                    temp.AddCondition(nodeStruct.GetCondition(i));
                     temp.children.add(result);
-                    temp.NodeToString();
                     result = temp;
                 }
             }
@@ -61,7 +63,7 @@ public class HeuristicOptimizer {
         return result;
     }
     //Pushes down select with condition by commuting between selections
-    private static NodeStructure CommuteSelect(String condition, NodeStructure nodeStruct){
+    private static NodeStructure CommuteSelect(Condition condition, NodeStructure nodeStruct){
         NodeStructure result = nodeStruct;
         if(nodeStruct.nodeType.equals(NodeType.Select) && nodeStruct.HasCondition(condition)
                 && nodeStruct.children.get(0).nodeType.equals(NodeType.Select)){
@@ -77,7 +79,7 @@ public class HeuristicOptimizer {
         return result;
     }
 
-    private static NodeStructure CommuteSelectJoin(String condition, NodeStructure nodeStruct){
+    private static NodeStructure CommuteSelectJoin(Condition condition, NodeStructure nodeStruct){
         NodeStructure result = nodeStruct;
         if(nodeStruct.nodeType.equals(NodeType.Select) && nodeStruct.HasCondition(condition)
                 && (nodeStruct.children.get(0).nodeType.equals(NodeType.Join) 
@@ -86,14 +88,38 @@ public class HeuristicOptimizer {
             NodeStructure targetSelect = nodeStruct;
             result = targetSelect.children.remove(0);
             
-            if(!result.children.get(1).nodeType.equals(NodeType.Relation)
-                    || !result.children.get(1).text.name.equals(GetRelation(condition))){
-                targetSelect.children.add(0, result.children.remove(0));
-                result.children.add(0, targetSelect);
+            NodeStructure targetSelectClone = new NodeStructure(NodeType.Select);
+            targetSelectClone.AddCondition(targetSelect.GetCondition(0));
+                    
+            NodeStructure joinLeft = result.children.get(0);
+            NodeStructure joinRight = result.children.get(1);
+            
+            if(condition.conditionType.equals(ConditionType.Join)){
+                if(!joinRight.nodeType.equals(NodeType.Relation) ||
+                        !(Schema.AttrInRelation(condition.attr1, joinRight.text.name) ||
+                        Schema.AttrInRelation(condition.attr2, joinRight.text.name))){
+                    targetSelect.children.add(0, joinLeft);
+                    result.children.remove(0);
+                    result.children.add(0, targetSelect);
+                } else {
+                    targetSelect.children.add(result);
+                    result = targetSelect;
+                }
             } else {
-                targetSelect.children.add(0, result.children.remove(1));
-                result.children.add(1, targetSelect);
-            }         
+                if(!joinRight.nodeType.equals(NodeType.Relation) ||
+                        Schema.AttrInRelation(condition.attr1, joinRight.text.name)){
+                    targetSelect.children.add(0, joinRight);
+                    result.children.remove(1);
+                    result.children.add(1, targetSelect);
+                }
+                
+                if(!joinLeft.nodeType.equals(NodeType.Relation) ||
+                        Schema.AttrInRelation(condition.attr1, joinLeft.text.name)){
+                    targetSelectClone.children.add(0, joinLeft);
+                    result.children.remove(0);
+                    result.children.add(0, targetSelectClone);
+                }
+            }        
         } else {
             for (int i = 0; i < nodeStruct.children.size(); i++){
                 nodeStruct.children.add(i, CommuteSelectJoin(condition, nodeStruct.children.remove(i)));

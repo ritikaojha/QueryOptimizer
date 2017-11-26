@@ -13,11 +13,12 @@ import java.util.List;
  * @author kathy
  */
 public class Condition {
-    private Attribute attr1, attr2;
-    public enum Sign {Equals, None}
-    private Sign sign;
-    public enum ConditionType {Inequality, Singular}
-    private ConditionType conditionType;
+    public Attribute attr1, attr2;
+    public enum Sign {Equals, None};
+    public Sign sign;
+    public enum ConditionType {Join, Select, Singular};
+    public ConditionType conditionType;
+    private String value = "";
     
     public Condition(String a){
         attr1 = new Attribute(a);
@@ -25,17 +26,23 @@ public class Condition {
         conditionType = ConditionType.Singular;
     }
     
-    public Condition(String a1, String a2, String op){
+    public Condition(String a1, String a2, String op, ConditionType ct){
         attr1 = new Attribute(a1);
-        attr2 = new Attribute(a2);
-        sign = StringToOperator(op);
-        conditionType = ConditionType.Inequality;
+        conditionType = ct;
+        if(ct.equals(ConditionType.Join))
+            attr2 = new Attribute(a2);
+        else
+            value = a2;
+        this.StringToOperator(op);
     }
-    
+   /* 
     public String[] GetRelations(){
         List<String> relations = new ArrayList<>();
         switch (conditionType){
-            case Inequality:
+            case Singular:
+                relations.addAll(attr1.GetRelations());
+                break;
+            case Select:
                 relations.addAll(attr1.GetRelations());
                 break;
             default:
@@ -44,18 +51,20 @@ public class Condition {
         }
         return relations.toArray(new String[0]);
     }
-    
-    public String toString(){
-        String result = attr1.toString();
-        String operator = OperatorToString();
+    */
+    public String ToString(){
+        String result = attr1.ToString();
+        String operator = this.OperatorToString();
         if(!operator.isEmpty()){
-            result += " " + operator + " " + attr2.toString();
+            if(conditionType.equals(ConditionType.Join))
+                result += " " + operator + " " + attr2.ToString();
+            else
+                result += " " + operator + " " + value;
         }
         return result;
     }
     
-    private Sign StringToOperator(String op){
-        Sign sign;
+    private void StringToOperator(String op){
         switch(op){
             case "=":
                 sign = Sign.Equals;
@@ -63,7 +72,6 @@ public class Condition {
             default:
                 sign = Sign.None;
         }
-        return sign;
     }
     
     private String OperatorToString(){
@@ -76,5 +84,19 @@ public class Condition {
                 op = "";
         }
         return op;
+    }
+    
+    public boolean ConditionEquals(Condition c){
+        boolean result = false;
+        if(this.conditionType.equals(c.conditionType)){
+            if(conditionType.equals(ConditionType.Join))
+                result = this.attr2.AttributeEquals(c.attr2);
+            else
+                result = this.value.equals(c.value);
+        }
+        
+        return result && this.attr1.AttributeEquals(c.attr1) &&
+                this.conditionType.equals(c.conditionType) &&
+                this.sign.equals(c.sign);
     }
 }

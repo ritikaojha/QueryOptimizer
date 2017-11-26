@@ -5,6 +5,8 @@
  */
 package edu.osu.queryopt;
 
+import edu.osu.queryopt.entity.Condition;
+import edu.osu.queryopt.entity.Condition.ConditionType;
 import edu.osu.queryopt.entity.Config;
 import edu.osu.queryopt.entity.NodeStructure;
 import edu.osu.queryopt.entity.NodeStructure.NodeType;
@@ -169,7 +171,12 @@ public class Visualizer {
 
         NodeStructure whereNode = new NodeStructure(NodeType.Select);
         for (WhereNode w:queryTree.whereList) {
-            whereNode.AddCondition(w.exp1, w.exp2, w.opr);
+            if(w.exp2.matches("[-+]?\\d*\\.?\\d+") || 
+                    w.exp2.contains("\"") || 
+                    w.exp2.contains("'"))
+                whereNode.AddCondition(w.exp1, w.exp2, w.opr, ConditionType.Select);
+            else
+                whereNode.AddCondition(w.exp1, w.exp2, w.opr, ConditionType.Join);
             //ptr.children.add(buildWhereCondition(w));
             //ptr = ptr.children.get(0);
         }
@@ -328,7 +335,7 @@ public class Visualizer {
             if (node == null) {
                 node = new NodeStructure(NodeType.Select);
             }
-            node.AddCondition(where.exp1, where.exp2, where.opr);
+            node.AddCondition(where.exp1, where.exp2, where.opr, ConditionType.Join);
             //else {
                 //ptr.children.add(buildWhereNode(where));
                 //ptr = ptr.children.get(0);

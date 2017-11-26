@@ -18,29 +18,34 @@ public class Attribute {
     private String attribute;
     
     public Attribute(String str){
-        String[] tokens = str.split(".");
-        if(tokens.length == 0){
-            relation = "";
-            attribute = str;
-        } else {
-            relation = tokens[0];
-            attribute = tokens[1];
+        String[] tokens = str.split("\\.");
+        switch(tokens.length){
+            case 0:
+                relation = "";
+                attribute = str;
+                break;
+            case 1:
+                relation = "";
+                attribute = tokens[0];
+                break;
+            default:
+                relation = tokens[0];
+                attribute = tokens[1];
         }
     }
     
-    public String toString(){
+    public String ToString(){
         if(relation.isEmpty())
             return attribute;
         else
             return relation + "." + attribute;
     }
     
-    public List<String> GetRelations(){
-        List<String> relations = new ArrayList<>();
-        if(relation.isEmpty())
-            relations = Schema.GetRelations(attribute);
-        else
-            relations.add(relation);
-        return relations;
+    public String GetRelation(){
+        return relation;
+    }
+    
+    public boolean AttributeEquals(Attribute a){
+        return this.relation.equals(a.relation) && this.attribute.equals(a.attribute);
     }
 }
