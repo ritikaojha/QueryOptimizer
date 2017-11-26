@@ -18,6 +18,7 @@ public class HeuristicOptimizer {
         result.addAll(CascadeSelect(nodeStruct));
         result.addAll(CascadeProject(result.get(result.size()-1)));
         result.addAll(CommuteSelect("C.X = 0", result.get(result.size()-1)));
+        //result.add(CommuteSelectJoin("C.X = 0", result.get(result.size()-1)));
         return result;
     }
     
@@ -64,7 +65,8 @@ public class HeuristicOptimizer {
     private static List<NodeStructure> CommuteSelect(String condition, NodeStructure nodeStruct){
         List<NodeStructure> result = new ArrayList<>();
         result.add(nodeStruct);
-        if(nodeStruct.nodeType.equals(NodeType.Select) && nodeStruct.HasCondition(condition)){
+        if(nodeStruct.nodeType.equals(NodeType.Select) && nodeStruct.HasCondition(condition)
+                && (nodeStruct.children.get(0).nodeType.equals(NodeType.Select))){
             NodeStructure targetSelect = nodeStruct;
             NodeStructure temp = targetSelect.children.remove(0);
             targetSelect.children.add(temp.children.remove(0));
