@@ -19,45 +19,54 @@ public class HeuristicOptimizer {
         List<NodeStructure> result = new ArrayList<>();
         result.add(CascadeSelect(nodeStruct));
         result.add(CascadeProject(result.get(result.size()-1)));
+        
         //Condition c = new Condition("B.X", "C.X", "=", ConditionType.Join);
-        //Condition c = new Condition("C.X", "0", "=", ConditionType.Select);
-        //result.add(CommuteSelect(c, result.get(result.size()-1)));
-        //result.add(CommuteSelect(c, result.get(result.size()-1)));
-        //result.add(CommuteSelectJoin(c, result.get(result.size()-1)));
-        //result.add(CommuteSelectJoin(c, result.get(result.size()-1)));
+        Condition c = new Condition("C.X", "0", "=", ConditionType.Select);
+        result.add(PushDownSelect(c, result.get(result.size()-1)));
+        
+        return result;
+    }
+    
+    private static NodeStructure PushDownSelect(Condition condition, NodeStructure nodeStruct){
+        NodeStructure result = nodeStruct;
+        
+        result = CommuteSelect(condition, result);
+        result = CommuteSelect(condition, result);
+        result = CommuteSelectJoin(condition, result);
+        result = CommuteSelectJoin(condition, result);
         return result;
     }
     
     private static NodeStructure CascadeSelect(NodeStructure nodeStruct){
         NodeStructure result = nodeStruct;
-        if(!nodeStruct.children.isEmpty()){
+        if(!nodeStruct.ChildrenIsEmpty()){
             if(nodeStruct.nodeType.equals(NodeType.Select) && nodeStruct.NumConditions() > 1){
-            result = nodeStruct.children.get(0);
+            result = nodeStruct.GetChild(0);
                 for (int i = 0; i < nodeStruct.NumConditions(); i++){
                     NodeStructure temp = new NodeStructure(NodeType.Select);
                     temp.AddCondition(nodeStruct.GetCondition(i));
-                    temp.children.add(result);
+                    temp.AddChild(result);
                     result = temp;
                 }
             }
-            for (int i = 0; i < nodeStruct.children.size(); i++){
-                nodeStruct.children.add(i, CascadeSelect(nodeStruct.children.remove(i)));
+            for (int i = 0; i < nodeStruct.NumChildren(); i++){
+                nodeStruct.AddChild(i, CascadeSelect(nodeStruct.RemoveChild(i)));
             }
         }
         return result;
     }
     private static NodeStructure CascadeProject(NodeStructure nodeStruct){
         NodeStructure result = nodeStruct;
-        if(!nodeStruct.children.isEmpty()){
+        if(!nodeStruct.ChildrenIsEmpty()){
             if(nodeStruct.nodeType.equals(NodeType.Project)){
-                NodeStructure nextChild = nodeStruct.children.remove(0);
+                NodeStructure nextChild = nodeStruct.RemoveChild(0);
                 while(nextChild.nodeType.equals(NodeType.Project)){
-                    nextChild = nextChild.children.remove(0);
+                    nextChild = nextChild.RemoveChild(0);
                 }
-                nodeStruct.children.add(0, nextChild);
+                nodeStruct.AddChild(0, nextChild);
             }
-            for (int i = 0; i < nodeStruct.children.size(); i++){
-                nodeStruct.children.add(i, CascadeProject(nodeStruct.children.remove(i)));
+            for (int i = 0; i < nodeStruct.NumChildren(); i++){
+                nodeStruct.AddChild(i, CascadeProject(nodeStruct.RemoveChild(i)));
             }
         }
         return result;
@@ -66,14 +75,14 @@ public class HeuristicOptimizer {
     private static NodeStructure CommuteSelect(Condition condition, NodeStructure nodeStruct){
         NodeStructure result = nodeStruct;
         if(nodeStruct.nodeType.equals(NodeType.Select) && nodeStruct.HasCondition(condition)
-                && nodeStruct.children.get(0).nodeType.equals(NodeType.Select)){
+                && nodeStruct.GetChild(0).nodeType.equals(NodeType.Select)){
             NodeStructure targetSelect = nodeStruct;
-            result = targetSelect.children.remove(0);
-            targetSelect.children.add(result.children.remove(0));
-            result.children.add(targetSelect);
+            result = targetSelect.RemoveChild(0);
+            targetSelect.AddChild(result.RemoveChild(0));
+            result.AddChild(targetSelect);
         } else {
-            for (int i = 0; i < nodeStruct.children.size(); i++){
-                nodeStruct.children.add(i, CommuteSelect(condition, nodeStruct.children.remove(i)));
+            for (int i = 0; i < nodeStruct.NumChildren(); i++){
+                nodeStruct.AddChild(i, CommuteSelect(condition, nodeStruct.RemoveChild(i)));
             }
         }
         return result;
@@ -82,54 +91,49 @@ public class HeuristicOptimizer {
     private static NodeStructure CommuteSelectJoin(Condition condition, NodeStructure nodeStruct){
         NodeStructure result = nodeStruct;
         if(nodeStruct.nodeType.equals(NodeType.Select) && nodeStruct.HasCondition(condition)
-                && (nodeStruct.children.get(0).nodeType.equals(NodeType.Join) 
-                || nodeStruct.children.get(0).nodeType.equals(NodeType.Cartesian))){
+                && (nodeStruct.GetChild(0).nodeType.equals(NodeType.Join) 
+                || nodeStruct.GetChild(0).nodeType.equals(NodeType.Cartesian))){
             
             NodeStructure targetSelect = nodeStruct;
-            result = targetSelect.children.remove(0);
+            result = targetSelect.RemoveChild(0);
             
             NodeStructure targetSelectClone = new NodeStructure(NodeType.Select);
             targetSelectClone.AddCondition(targetSelect.GetCondition(0));
                     
-            NodeStructure joinLeft = result.children.get(0);
-            NodeStructure joinRight = result.children.get(1);
+            NodeStructure joinLeft = result.GetChild(0);
+            NodeStructure joinRight = result.GetChild(1);
             
             if(condition.conditionType.equals(ConditionType.Join)){
                 if(!joinRight.nodeType.equals(NodeType.Relation) ||
                         !(Schema.AttrInRelation(condition.attr1, joinRight.text.name) ||
                         Schema.AttrInRelation(condition.attr2, joinRight.text.name))){
-                    targetSelect.children.add(0, joinLeft);
-                    result.children.remove(0);
-                    result.children.add(0, targetSelect);
+                    targetSelect.AddChild(0, joinLeft);
+                    result.RemoveChild(0);
+                    result.AddChild(0, targetSelect);
                 } else {
-                    targetSelect.children.add(result);
+                    targetSelect.AddChild(result);
                     result = targetSelect;
                 }
             } else {
                 if(!joinRight.nodeType.equals(NodeType.Relation) ||
                         Schema.AttrInRelation(condition.attr1, joinRight.text.name)){
-                    targetSelect.children.add(0, joinRight);
-                    result.children.remove(1);
-                    result.children.add(1, targetSelect);
+                    targetSelect.AddChild(0, joinRight);
+                    result.RemoveChild(1);
+                    result.AddChild(1, targetSelect);
                 }
                 
                 if(!joinLeft.nodeType.equals(NodeType.Relation) ||
                         Schema.AttrInRelation(condition.attr1, joinLeft.text.name)){
-                    targetSelectClone.children.add(0, joinLeft);
-                    result.children.remove(0);
-                    result.children.add(0, targetSelectClone);
+                    targetSelectClone.AddChild(0, joinLeft);
+                    result.RemoveChild(0);
+                    result.AddChild(0, targetSelectClone);
                 }
             }        
         } else {
-            for (int i = 0; i < nodeStruct.children.size(); i++){
-                nodeStruct.children.add(i, CommuteSelectJoin(condition, nodeStruct.children.remove(i)));
+            for (int i = 0; i < nodeStruct.NumChildren(); i++){
+                nodeStruct.AddChild(i, CommuteSelectJoin(condition, nodeStruct.RemoveChild(i)));
             }
         }
         return result;
-    }
-    
-    private static String GetRelation(String condition){
-        String[] tokens = condition.split("\\.");
-        return tokens[0].toUpperCase();
     }
 }

@@ -22,7 +22,9 @@ public class NodeStructure implements Serializable {
     private List<Condition> conditions;
     public List<NodeStructure> children;
     public int selectivity;                          //estimated execution cost
-    public int size;                            //size of query
+    public int size;                           //size of query
+    private int height = 1;
+    private int maxChildHeight = 0;
     
     public NodeStructure() {
         text = new Text();
@@ -57,6 +59,45 @@ public class NodeStructure implements Serializable {
         nodeType = type;
         UpdateSize();
         NodeToString();
+    }
+    public void AddChild(NodeStructure n){
+        children.add(n);
+        if(n.height > maxChildHeight){
+            maxChildHeight = n.height;
+            height = n.height + 1;
+        }
+    }
+    
+    public void AddChild(int index, NodeStructure n){
+        children.add(index, n);
+        if(n.height > maxChildHeight){
+            maxChildHeight = n.height;
+            height = n.height + 1;
+        }
+    }
+    
+    public NodeStructure GetChild(int index){
+        return children.get(index);
+    }
+    
+    public NodeStructure RemoveChild(int index){
+        NodeStructure child = children.remove(index);
+        if(child.height == maxChildHeight){
+            maxChildHeight = 0;
+            for (NodeStructure temp:children){
+                if(temp.height > maxChildHeight)
+                    maxChildHeight = temp.height; 
+            }
+        }
+        return child;
+    }
+    
+    public boolean ChildrenIsEmpty(){
+        return children.isEmpty();
+    }
+    
+    public int NumChildren(){
+        return children.size();
     }
     
     public void AddCondition(Condition c){

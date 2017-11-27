@@ -180,8 +180,8 @@ public class Visualizer {
             //ptr.children.add(buildWhereCondition(w));
             //ptr = ptr.children.get(0);
         }
-        ptr.children.add(whereNode);
-        ptr = ptr.children.get(0);
+        ptr.AddChild(whereNode);
+        ptr = ptr.GetChild(0);
         /*
         if (!queryTree.joinOn.isEmpty()) {
             Set<String> tablesJoined = new HashSet<>();
@@ -292,18 +292,18 @@ public class Visualizer {
             int counter = 0;
             for (String from:queryTree.fromMap.keySet()){
                 if(counter < 2){
-                    fromNode.children.add(buildFromNode(from, queryTree.fromMap));
+                    fromNode.AddChild(buildFromNode(from, queryTree.fromMap));
                     counter++;
                 }
                 else {
                     //create left deep join
                     NodeStructure temp = new NodeStructure(NodeType.Cartesian);
-                    temp.children.add(fromNode);
-                    temp.children.add(buildFromNode(from, queryTree.fromMap));
+                    temp.AddChild(fromNode);
+                    temp.AddChild(buildFromNode(from, queryTree.fromMap));
                     fromNode = temp;
                 }
             }
-            ptr.children.add(fromNode);
+            ptr.AddChild(fromNode);
         //}
         return node;
     }
@@ -341,8 +341,8 @@ public class Visualizer {
                 //ptr = ptr.children.get(0);
             //}
         }
-        ptr = ptr.children.get(0);
-        ptr.children.add(new NodeStructure(from));
+        ptr = ptr.GetChild(0);
+        ptr.AddChild(new NodeStructure(from));
         return node;
     }
 }
