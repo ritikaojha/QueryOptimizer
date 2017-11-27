@@ -152,4 +152,26 @@ public class HeuristicOptimizer {
         }
         return result;
     }
+    
+    private static NodeStructure CommuteProjectWithSelect(NodeStructure nodeStruct){
+        NodeStructure result = nodeStruct;
+        if(nodeStruct.nodeType.equals(NodeType.Select) && nodeStruct.GetChild(0).nodeType.equals(NodeType.Project)){
+            NodeStructure project = nodeStruct;
+            result = project.RemoveChild(0);
+            project.AddChild(result.RemoveChild(0));
+            result.AddChild(project);
+        }
+        return result;
+    }
+    
+    private static NodeStructure CommuteSelectWithProject(NodeStructure nodeStruct){
+        NodeStructure result = nodeStruct;
+        if(nodeStruct.nodeType.equals(NodeType.Project) && nodeStruct.GetChild(0).nodeType.equals(NodeType.Select)){
+            NodeStructure select = nodeStruct;
+            result = select.RemoveChild(0);
+            select.AddChild(result.RemoveChild(0));
+            result.AddChild(select);
+        }
+        return result;
+    }
 }
