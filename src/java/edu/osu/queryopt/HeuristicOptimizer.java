@@ -143,4 +143,13 @@ public class HeuristicOptimizer {
         }
         return result;
     }
+    
+    private static NodeStructure CommuteJoin(NodeStructure nodeStruct){
+        NodeStructure result = nodeStruct;
+        if(nodeStruct.nodeType.equals(NodeType.Cartesian) ||
+                nodeStruct.nodeType.equals(NodeType.Join)){
+            result.AddChild(result.RemoveChild(0));
+        }
+        return result;
+    }
 }
