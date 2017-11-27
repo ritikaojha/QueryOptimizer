@@ -18,8 +18,8 @@ public class HeuristicOptimizer {
     static List<NodeStructure> Optimize(NodeStructure nodeStruct){
         List<NodeStructure> result = new ArrayList<>();
         result.add(CascadeSelect(nodeStruct));
+        result.add(GroupProject(result.get(result.size()-1)));
         result.add(CascadeProject(result.get(result.size()-1)));
-        
         //Condition c = new Condition("B.X", "C.X", "=", ConditionType.Join);
         Condition c = new Condition("C.X", "0", "=", ConditionType.Select);
         result.add(PushDownSelect(c, result.get(result.size()-1)));
@@ -62,7 +62,27 @@ public class HeuristicOptimizer {
         }
         return result;
     }
+    
     private static NodeStructure CascadeProject(NodeStructure nodeStruct){
+        NodeStructure result = nodeStruct.GetChild(0);
+        NodeStructure temp, temp2, ptr;
+        if(nodeStruct.nodeType.equals(NodeType.Project)){
+            temp = new NodeStructure(NodeType.Project);
+            temp.AddCondition(nodeStruct.GetCondition(0));
+            ptr = temp;
+            for(int i = 1; i < nodeStruct.NumConditions(); i++){
+                temp2 = new NodeStructure(NodeType.Project);
+                temp2.AddCondition(nodeStruct.GetCondition(i));
+                ptr.children.add(temp2);
+                ptr = temp2;
+            }
+            ptr.AddChild(result);
+            result = temp;
+        }
+        return result;
+    }
+    
+    private static NodeStructure GroupProject(NodeStructure nodeStruct){
         NodeStructure result = nodeStruct;
         if(!nodeStruct.ChildrenIsEmpty()){
             if(nodeStruct.nodeType.equals(NodeType.Project)){
@@ -73,7 +93,7 @@ public class HeuristicOptimizer {
                 nodeStruct.AddChild(0, nextChild);
             }
             for (int i = 0; i < nodeStruct.NumChildren(); i++){
-                nodeStruct.AddChild(i, CascadeProject(nodeStruct.RemoveChild(i)));
+                nodeStruct.AddChild(i, GroupProject(nodeStruct.RemoveChild(i)));
             }
         }
         return result;
