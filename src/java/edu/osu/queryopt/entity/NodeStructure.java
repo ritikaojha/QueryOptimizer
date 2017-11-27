@@ -133,6 +133,10 @@ public class NodeStructure implements Serializable {
         return result;
     }
     
+    public int GetHeight(){
+        return height;
+    }
+    
     //TO be implemented
     public void UpdateSize(){
         if(children.size() == 0) //leaf node

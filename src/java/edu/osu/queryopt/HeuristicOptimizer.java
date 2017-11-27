@@ -29,11 +29,18 @@ public class HeuristicOptimizer {
     
     private static NodeStructure PushDownSelect(Condition condition, NodeStructure nodeStruct){
         NodeStructure result = nodeStruct;
+        int maxCommutes = nodeStruct.GetHeight() - 2;
+        int counter = 0;
+        while (counter < maxCommutes){
+            result = CommuteSelect(condition, result);
+            counter++;
+        }
+        counter = 0;
+        while (counter < maxCommutes){
+            result = CommuteSelectJoin(condition, result);
+            counter++;
+        }
         
-        result = CommuteSelect(condition, result);
-        result = CommuteSelect(condition, result);
-        result = CommuteSelectJoin(condition, result);
-        result = CommuteSelectJoin(condition, result);
         return result;
     }
     
