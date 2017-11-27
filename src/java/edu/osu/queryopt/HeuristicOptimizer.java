@@ -104,8 +104,7 @@ public class HeuristicOptimizer {
             NodeStructure targetSelect = nodeStruct;
             result = targetSelect.RemoveChild(0);
             
-            NodeStructure targetSelectClone = new NodeStructure(NodeType.Select);
-            targetSelectClone.AddCondition(targetSelect.GetCondition(0));
+            NodeStructure targetSelectClone = targetSelect.CloneTopNode();
                     
             NodeStructure joinLeft = result.GetChild(0);
             NodeStructure joinRight = result.GetChild(1);

@@ -34,6 +34,11 @@ public class Attribute {
         }
     }
     
+    public Attribute(Attribute attr){
+        this.relation = attr.relation;
+        this.attribute = attr.attribute;
+    }
+    
     public String ToString(){
         if(relation.isEmpty())
             return attribute;

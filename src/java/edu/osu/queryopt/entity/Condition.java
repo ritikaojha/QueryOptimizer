@@ -35,6 +35,17 @@ public class Condition {
             value = a2;
         this.StringToOperator(op);
     }
+    
+    public Condition(Condition c){
+        this.attr1 = c.attr1;
+        this.sign = c.sign;
+        this.conditionType = c.conditionType;
+        if (this.conditionType.equals(ConditionType.Join)){
+            this.attr2 = new Attribute(c.attr2);
+        } else {
+            this.value = c.value;
+        }
+    }
    /* 
     public String[] GetRelations(){
         List<String> relations = new ArrayList<>();

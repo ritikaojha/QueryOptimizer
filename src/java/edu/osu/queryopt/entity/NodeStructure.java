@@ -207,4 +207,12 @@ public class NodeStructure implements Serializable {
                 AddCondition(rawTokens[i]);
         }
     }
+    
+    public NodeStructure CloneTopNode(){
+        NodeStructure clone = new NodeStructure(this.text.name, this.nodeType);
+        for(Condition c: this.conditions)
+            clone.conditions.add(new Condition(c));
+        this.NodeToString();
+        return clone;
+    }
 }
