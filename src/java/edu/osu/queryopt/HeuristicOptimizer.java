@@ -17,28 +17,54 @@ import java.util.List;
 public class HeuristicOptimizer {
     static List<NodeStructure> Optimize(NodeStructure nodeStruct){
         List<NodeStructure> result = new ArrayList<>();
-        result.add(CascadeSelect(nodeStruct));
-        result.add(GroupProject(result.get(result.size()-1)));
-        result.add(CascadeProject(result.get(result.size()-1)));
-        //Condition c = new Condition("B.X", "C.X", "=", ConditionType.Join);
-        Condition c = new Condition("C.X", "0", "=", ConditionType.Select);
-        result.add(PushDownSelect(c, result.get(result.size()-1)));
+        //test cascade select
+        NodeStructure temp = nodeStruct.CloneTopNode();
+        temp.AddChild(CascadeSelect(nodeStruct.GetChild(0)));
+        result.add(temp);
         
+        //test cascade project
+        result.add(CascadeProject(result.get(result.size()-1)));
+        
+        //test group project
+        result.add(GroupProject(result.get(result.size()-1)));
+        
+        //test push down select
+        temp = nodeStruct.CloneTopNode();
+        temp.AddChild(PushDownSelect(result.get(result.size()-1).GetChild(0)));
+        result.add(temp);
         return result;
     }
     
-    private static NodeStructure PushDownSelect(Condition condition, NodeStructure nodeStruct){
+    private static NodeStructure PushDownSelect(NodeStructure nodeStruct){
         NodeStructure result = nodeStruct;
-        int maxCommutes = nodeStruct.GetHeight() - 2;
-        int counter = 0;
-        while (counter < maxCommutes){
-            result = CommuteSelect(condition, result);
-            counter++;
-        }
-        counter = 0;
-        while (counter < maxCommutes){
-            result = CommuteSelectJoin(condition, result);
-            counter++;
+        NodeStructure ptr;
+        Condition condition;
+        if(nodeStruct.nodeType.equals(NodeType.Select)){
+            condition = nodeStruct.GetCondition(0);
+            ptr = nodeStruct.GetChild(0);
+            switch (ptr.nodeType){
+                case Select:
+                    result = CommuteSelect(result);
+                    break;
+                case Join:
+                    result = CommuteSelectJoin(result);
+                    break;
+                case Cartesian:
+                    result = CommuteSelectJoin(result);
+                    break;
+            }
+            if(result != nodeStruct){
+                ptr = result.CloneTopNode();
+                for(int i = 0; i < result.NumChildren(); i++){
+                    NodeStructure child = result.GetChild(i);
+                    if(child.HasCondition(condition))
+                        ptr.AddChild(PushDownSelect(child));
+                    else {
+                        ptr.AddChild(child);
+                    }
+                }
+                result = ptr;
+            }
         }
         
         return result;
@@ -46,27 +72,23 @@ public class HeuristicOptimizer {
     
     private static NodeStructure CascadeSelect(NodeStructure nodeStruct){
         NodeStructure result = nodeStruct;
-        if(!nodeStruct.ChildrenIsEmpty()){
-            if(nodeStruct.nodeType.equals(NodeType.Select) && nodeStruct.NumConditions() > 1){
+        if(nodeStruct.nodeType.equals(NodeType.Select) && nodeStruct.NumConditions() > 1){
             result = nodeStruct.GetChild(0);
-                for (int i = 0; i < nodeStruct.NumConditions(); i++){
-                    NodeStructure temp = new NodeStructure(NodeType.Select);
-                    temp.AddCondition(nodeStruct.GetCondition(i));
-                    temp.AddChild(result);
-                    result = temp;
-                }
-            }
-            for (int i = 0; i < nodeStruct.NumChildren(); i++){
-                nodeStruct.AddChild(i, CascadeSelect(nodeStruct.RemoveChild(i)));
+            for (int i = 0; i < nodeStruct.NumConditions(); i++){
+                NodeStructure temp = new NodeStructure(NodeType.Select);
+                temp.AddCondition(nodeStruct.GetCondition(i));
+                temp.AddChild(result);
+                result = temp;
             }
         }
         return result;
     }
     
     private static NodeStructure CascadeProject(NodeStructure nodeStruct){
-        NodeStructure result = nodeStruct.GetChild(0);
+        NodeStructure result = nodeStruct;
         NodeStructure temp, temp2, ptr;
-        if(nodeStruct.nodeType.equals(NodeType.Project)){
+        if(nodeStruct.nodeType.equals(NodeType.Project) && nodeStruct.NumConditions() > 1){
+            result = nodeStruct.GetChild(0);
             temp = new NodeStructure(NodeType.Project);
             temp.AddCondition(nodeStruct.GetCondition(0));
             ptr = temp;
@@ -84,81 +106,84 @@ public class HeuristicOptimizer {
     
     private static NodeStructure GroupProject(NodeStructure nodeStruct){
         NodeStructure result = nodeStruct;
-        if(!nodeStruct.ChildrenIsEmpty()){
-            if(nodeStruct.nodeType.equals(NodeType.Project)){
-                NodeStructure nextChild = nodeStruct.RemoveChild(0);
-                while(nextChild.nodeType.equals(NodeType.Project)){
-                    nextChild = nextChild.RemoveChild(0);
-                }
-                nodeStruct.AddChild(0, nextChild);
+        NodeStructure temp;
+        if(nodeStruct.nodeType.equals(NodeType.Project) && 
+                nodeStruct.children.get(0).nodeType.equals(NodeType.Project)){
+            result = nodeStruct.GetChild(0);
+            temp = nodeStruct.CloneTopNode();
+            while(result.nodeType.equals(NodeType.Project)){
+                temp.AddCondition(result.GetCondition(0));
+                result = result.GetChild(0);
             }
-            for (int i = 0; i < nodeStruct.NumChildren(); i++){
-                nodeStruct.AddChild(i, GroupProject(nodeStruct.RemoveChild(i)));
-            }
+            temp.AddChild(result);
+            result = temp;
         }
         return result;
     }
     //Pushes down select with condition by commuting between selections
-    private static NodeStructure CommuteSelect(Condition condition, NodeStructure nodeStruct){
+    private static NodeStructure CommuteSelect(NodeStructure nodeStruct){
         NodeStructure result = nodeStruct;
-        if(nodeStruct.nodeType.equals(NodeType.Select) && nodeStruct.HasCondition(condition)
+        NodeStructure ptr, resultPtr;
+        if(nodeStruct.nodeType.equals(NodeType.Select)
                 && nodeStruct.GetChild(0).nodeType.equals(NodeType.Select)){
-            NodeStructure targetSelect = nodeStruct;
-            result = targetSelect.RemoveChild(0);
-            targetSelect.AddChild(result.RemoveChild(0));
-            result.AddChild(targetSelect);
-        } else {
-            for (int i = 0; i < nodeStruct.NumChildren(); i++){
-                nodeStruct.AddChild(i, CommuteSelect(condition, nodeStruct.RemoveChild(i)));
-            }
+            ptr = nodeStruct.GetChild(0);
+            result = ptr.CloneTopNode();
+            resultPtr = result;
+            resultPtr.AddChild(nodeStruct.CloneTopNode());
+            
+            ptr = ptr.GetChild(0);
+            resultPtr = resultPtr.GetChild(0);
+            
+            resultPtr.AddChild(ptr);
         }
         return result;
     }
 
-    private static NodeStructure CommuteSelectJoin(Condition condition, NodeStructure nodeStruct){
+    private static NodeStructure CommuteSelectJoin(NodeStructure nodeStruct){
         NodeStructure result = nodeStruct;
-        if(nodeStruct.nodeType.equals(NodeType.Select) && nodeStruct.HasCondition(condition)
+        NodeStructure ptr, resultPtr;
+        Condition condition;
+        if(nodeStruct.nodeType.equals(NodeType.Select)
                 && (nodeStruct.GetChild(0).nodeType.equals(NodeType.Join) 
                 || nodeStruct.GetChild(0).nodeType.equals(NodeType.Cartesian))){
-            
-            NodeStructure targetSelect = nodeStruct;
-            result = targetSelect.RemoveChild(0);
-            
-            NodeStructure targetSelectClone = targetSelect.CloneTopNode();
+            condition = nodeStruct.GetCondition(0);
+            ptr = nodeStruct.GetChild(0);
                     
-            NodeStructure joinLeft = result.GetChild(0);
-            NodeStructure joinRight = result.GetChild(1);
+            NodeStructure joinLeft = ptr.GetChild(0);
+            NodeStructure joinRight = ptr.GetChild(1);
             
             if(condition.conditionType.equals(ConditionType.Join)){
                 if(!joinRight.nodeType.equals(NodeType.Relation) ||
                         !(Schema.AttrInRelation(condition.attr1, joinRight.text.name) ||
                         Schema.AttrInRelation(condition.attr2, joinRight.text.name))){
-                    targetSelect.AddChild(0, joinLeft);
-                    result.RemoveChild(0);
-                    result.AddChild(0, targetSelect);
-                } else {
-                    targetSelect.AddChild(result);
-                    result = targetSelect;
+                    result = ptr.CloneTopNode();
+                    result.AddChild(nodeStruct.CloneTopNode());
+                    resultPtr = result.GetChild(0);
+                    resultPtr.AddChild(joinLeft);
+                    result.AddChild(joinRight);
                 }
             } else {
-                if(!joinRight.nodeType.equals(NodeType.Relation) ||
-                        Schema.AttrInRelation(condition.attr1, joinRight.text.name)){
-                    targetSelect.AddChild(0, joinRight);
-                    result.RemoveChild(1);
-                    result.AddChild(1, targetSelect);
-                }
-                
                 if(!joinLeft.nodeType.equals(NodeType.Relation) ||
                         Schema.AttrInRelation(condition.attr1, joinLeft.text.name)){
-                    targetSelectClone.AddChild(0, joinLeft);
-                    result.RemoveChild(0);
-                    result.AddChild(0, targetSelectClone);
+                    result = ptr.CloneTopNode();
+                    result.AddChild(nodeStruct.CloneTopNode());
+                    resultPtr = result.GetChild(0);
+                    resultPtr.AddChild(joinLeft);
+                }
+                
+                if(!joinRight.nodeType.equals(NodeType.Relation) ||
+                        Schema.AttrInRelation(condition.attr1, joinRight.text.name)){
+                    if(result == nodeStruct){
+                        result = ptr.CloneTopNode();
+                        result.AddChild(ptr.GetChild(0));
+                    }
+                    result.AddChild(nodeStruct.CloneTopNode());
+                    resultPtr = result.GetChild(1);
+                    resultPtr.AddChild(joinRight);
+                } else if(result != nodeStruct){
+                    result.AddChild(ptr.GetChild(1));
                 }
             }        
-        } else {
-            for (int i = 0; i < nodeStruct.NumChildren(); i++){
-                nodeStruct.AddChild(i, CommuteSelectJoin(condition, nodeStruct.RemoveChild(i)));
-            }
         }
         return result;
     }

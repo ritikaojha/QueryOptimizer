@@ -212,7 +212,7 @@ public class NodeStructure implements Serializable {
         NodeStructure clone = new NodeStructure(this.text.name, this.nodeType);
         for(Condition c: this.conditions)
             clone.conditions.add(new Condition(c));
-        this.NodeToString();
+        clone.NodeToString();
         return clone;
     }
 }
