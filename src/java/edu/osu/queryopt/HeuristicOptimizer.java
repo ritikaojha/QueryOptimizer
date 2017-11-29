@@ -385,4 +385,26 @@ public class HeuristicOptimizer {
         }
         return isSubset;
     }
+    
+    private static NodeStructure AssociativeJoin(NodeStructure nodeStruct) {
+        NodeStructure result = new NodeStructure(NodeType.Join);
+        if(nodeStruct.nodeType.equals(NodeType.Join) && nodeStruct.GetChild(0).equals(NodeType.Join)) {
+            NodeStructure join = nodeStruct.RemoveChild(0);
+            NodeStructure left = join.RemoveChild(0);
+            NodeStructure right = join.RemoveChild(0);
+            result.AddChild(0,left);
+            join.AddChild(0, right);
+            join.AddChild(1, nodeStruct.RemoveChild(0));
+            result.AddChild(1, join);
+        } else if (nodeStruct.nodeType.equals(NodeType.Join) && nodeStruct.GetChild(1).equals(NodeType.Join)) {
+            NodeStructure join = nodeStruct.RemoveChild(1);
+            NodeStructure left = join.RemoveChild(0);
+            NodeStructure right = join.RemoveChild(0);
+            join.AddChild(0, nodeStruct.RemoveChild(0));
+            join.AddChild(1, left);
+            result.AddChild(0, join);
+            result.AddChild(1,right);
+        }
+        return result;
+    }
 }
