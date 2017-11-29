@@ -180,8 +180,10 @@ public class Visualizer {
             //ptr.children.add(buildWhereCondition(w));
             //ptr = ptr.children.get(0);
         }
-        ptr.AddChild(whereNode);
-        ptr = ptr.GetChild(0);
+        if (whereNode.conditions.size() != 0) {
+            ptr.AddChild(whereNode);
+            ptr = ptr.GetChild(0);
+        }
         /*
         if (!queryTree.joinOn.isEmpty()) {
             Set<String> tablesJoined = new HashSet<>();
@@ -302,7 +304,10 @@ public class Visualizer {
                     fromNode = temp;
                 }
             }
-            ptr.AddChild(fromNode);
+            if (queryTree.fromMap.size() > 1)
+                ptr.AddChild(fromNode);
+            else
+                ptr.AddChild(fromNode.children.get(0));
         //}
         return node;
     }
