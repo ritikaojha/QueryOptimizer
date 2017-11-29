@@ -47,7 +47,7 @@ public class HeuristicOptimizer {
         result.add(PushDownProject(result.get(result.size()-1)));
         
         //create joins
-        result.addAll(CreateJoin(result.get(result.size()-1)));
+        //result.addAll(CreateJoin(result.get(result.size()-1)));
         return result;
     }
     
@@ -431,12 +431,10 @@ public class HeuristicOptimizer {
                             x.text.name = child.text.name.replace("\u03C3", "\u2A1D");
                             node.children.remove(child);
                             node.children.addAll(child.children);
-                            result.add(node);
-                            break;
+                            result.add(temp);
                         }
                     }
                 }
-                break;
             }
         }
         return result;
