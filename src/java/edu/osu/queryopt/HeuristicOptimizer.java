@@ -4,12 +4,15 @@
  * and open the template in the editor.
  */
 package edu.osu.queryopt;
+import edu.osu.queryopt.entity.Attribute;
 import edu.osu.queryopt.entity.Condition;
 import edu.osu.queryopt.entity.Condition.ConditionType;
 import edu.osu.queryopt.entity.NodeStructure;
 import edu.osu.queryopt.entity.NodeStructure.NodeType;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 /**
  *
  * @author kathy
@@ -23,15 +26,16 @@ public class HeuristicOptimizer {
         result.add(temp);
         
         //test cascade project
-        result.add(CascadeProject(result.get(result.size()-1)));
+        //result.add(CascadeProject(result.get(result.size()-1)));
         
+        result.add(PushDownProject(result.get(result.size()-1)));
         //test group project
-        result.add(GroupProject(result.get(result.size()-1)));
-        
+        //result.add(GroupProject(result.get(result.size()-1)));
+        /*
         //test push down select
         temp = nodeStruct.CloneTopNode();
         temp.AddChild(PushDownSelect(result.get(result.size()-1).GetChild(0)));
-        result.add(temp);
+        result.add(temp);*/
         return result;
     }
     
@@ -52,6 +56,9 @@ public class HeuristicOptimizer {
                 case Cartesian:
                     result = CommuteSelectJoin(result);
                     break;
+                case Project:
+                    result = CommuteSelectWithProject(result);
+                    break;
             }
             if(result != nodeStruct){
                 ptr = result.CloneTopNode();
@@ -59,6 +66,41 @@ public class HeuristicOptimizer {
                     NodeStructure child = result.GetChild(i);
                     if(child.HasCondition(condition))
                         ptr.AddChild(PushDownSelect(child));
+                    else {
+                        ptr.AddChild(child);
+                    }
+                }
+                result = ptr;
+            }
+        }
+        
+        return result;
+    }
+    
+    private static NodeStructure PushDownProject(NodeStructure nodeStruct){
+        NodeStructure result = nodeStruct;
+        NodeStructure ptr;
+        Condition condition;
+        if(nodeStruct.nodeType.equals(NodeType.Project)){
+            condition = nodeStruct.GetCondition(0);
+            ptr = nodeStruct.GetChild(0);
+            switch (ptr.nodeType){
+                case Select:
+                    result = CommuteProjectWithSelect(result);
+                    break;
+                case Join:
+                    result = CommuteProjectJoin(result);
+                    break;
+                case Cartesian:
+                    result = CommuteProjectJoin(result);
+                    break;
+            }
+            if(result != nodeStruct){
+                ptr = result.CloneTopNode();
+                for(int i = 0; i < result.NumChildren(); i++){
+                    NodeStructure child = result.GetChild(i);
+                    if(child.HasCondition(condition))
+                        ptr.AddChild(PushDownProject(child));
                     else {
                         ptr.AddChild(child);
                     }
@@ -196,26 +238,116 @@ public class HeuristicOptimizer {
         }
         return result;
     }
-    
+   
     private static NodeStructure CommuteProjectWithSelect(NodeStructure nodeStruct){
         NodeStructure result = nodeStruct;
+        if(nodeStruct.nodeType.equals(NodeType.Project) && nodeStruct.GetChild(0).nodeType.equals(NodeType.Select)){
+            NodeStructure select = nodeStruct.GetChild(0);
+            
+            boolean commuteAllowed = AttrIsSubset(select, nodeStruct);
+            if(commuteAllowed){
+                result = select.CloneTopNode();
+                result.AddChild(nodeStruct.CloneTopNode());
+                result.GetChild(0).AddChild(select.GetChild(0));
+            }
+        }
+        return result;
+    }
+
+    private static NodeStructure CommuteSelectWithProject(NodeStructure nodeStruct){
+        NodeStructure result = nodeStruct;
         if(nodeStruct.nodeType.equals(NodeType.Select) && nodeStruct.GetChild(0).nodeType.equals(NodeType.Project)){
-            NodeStructure project = nodeStruct;
-            result = project.RemoveChild(0);
-            project.AddChild(result.RemoveChild(0));
-            result.AddChild(project);
+            NodeStructure project = nodeStruct.GetChild(0);
+            
+            boolean commuteAllowed = AttrIsSubset(nodeStruct, project);
+            if(commuteAllowed){
+                result = project.CloneTopNode();
+                result.AddChild(nodeStruct.CloneTopNode());
+                result.GetChild(0).AddChild(project.GetChild(0));
+            }
         }
         return result;
     }
     
-    private static NodeStructure CommuteSelectWithProject(NodeStructure nodeStruct){
+    //Not tested
+    private static NodeStructure CommuteProjectJoin(NodeStructure nodeStruct){
         NodeStructure result = nodeStruct;
-        if(nodeStruct.nodeType.equals(NodeType.Project) && nodeStruct.GetChild(0).nodeType.equals(NodeType.Select)){
-            NodeStructure select = nodeStruct;
-            result = select.RemoveChild(0);
-            select.AddChild(result.RemoveChild(0));
-            result.AddChild(select);
+        if(nodeStruct.nodeType.equals(NodeType.Project) && 
+                (nodeStruct.GetChild(0).nodeType.equals(NodeType.Cartesian) ||
+                nodeStruct.GetChild(0).nodeType.equals(NodeType.Join))){
+            NodeStructure join = nodeStruct.GetChild(0);
+            NodeStructure resultPtr, resultPtr2, ptr;
+            Set<String> projectAttr = new HashSet<>();
+            Set<String> joinAttr = new HashSet<>();
+            
+            for(int i = 0; i < nodeStruct.NumConditions(); i++){
+                projectAttr.add(nodeStruct.GetCondition(i).attr1.ToString());
+            }
+            for(int i = 0; i < join.NumConditions(); i++){
+                joinAttr.add(join.GetCondition(i).attr1.ToString());
+                joinAttr.add(join.GetCondition(i).attr2.ToString());
+            }
+            
+            boolean allJoinAttrInProject = projectAttr.containsAll(joinAttr);
+            
+            if(allJoinAttrInProject){
+                result = nodeStruct.GetChild(0).CloneTopNode();
+                resultPtr = result;
+            } else {
+                result = nodeStruct.CloneTopNode();
+                result.AddChild(nodeStruct.GetChild(0).CloneTopNode());
+                projectAttr.addAll(joinAttr);
+                resultPtr = result.GetChild(0);
+            }
+            
+            ptr = nodeStruct.GetChild(0);
+            NodeStructure tempRightProject = new NodeStructure(NodeType.Project);
+            NodeStructure tempLeftProject = new NodeStructure(NodeType.Project);
+            for(String attr: projectAttr){
+                Attribute a = new Attribute(attr);
+                if(!ptr.GetChild(0).nodeType.equals(NodeType.Relation) ||
+                        a.GetRelation().equals(ptr.GetChild(0).text.name)){
+                    tempLeftProject.AddCondition(attr);
+                }
+                if(!ptr.GetChild(1).nodeType.equals(NodeType.Relation) ||
+                        a.GetRelation().equals(ptr.GetChild(1).text.name)){
+                    tempRightProject.AddCondition(attr);
+                }
+            }
+            resultPtr2 = resultPtr;
+            if(tempLeftProject.NumConditions() > 0){
+                resultPtr.AddChild(tempLeftProject);
+                resultPtr = resultPtr.GetChild(0);
+            }
+            resultPtr.AddChild(ptr.GetChild(0));
+            if(tempRightProject.NumConditions() > 0){
+                resultPtr2.AddChild(tempRightProject);
+                resultPtr2 = resultPtr2.GetChild(1);
+            }
+            resultPtr2.AddChild(ptr.GetChild(1));
         }
         return result;
+    }
+    
+    //Checks if all attr of nodeStruct1 are in attr of nodestruct2
+    private static boolean AttrIsSubset(NodeStructure nodeStruct1, NodeStructure nodeStruct2){
+        boolean isSubset = false;
+        if(nodeStruct1.NumConditions() > 0 && nodeStruct2.NumConditions() > 0){
+            Set<String> n1Attr = new HashSet<>();
+            Set<String> n2Attr = new HashSet<>();
+
+            for(int i = 0; i < nodeStruct1.NumConditions(); i++){
+                n1Attr.add(nodeStruct1.GetCondition(i).attr1.ToString());
+                if(nodeStruct1.GetCondition(i).conditionType.equals(ConditionType.Join))
+                    n1Attr.add(nodeStruct1.GetCondition(i).attr2.ToString());
+            }
+            for(int i = 0; i < nodeStruct2.NumConditions(); i++){
+                n2Attr.add(nodeStruct2.GetCondition(i).attr1.ToString());
+                if(nodeStruct2.GetCondition(i).conditionType.equals(ConditionType.Join))
+                    n2Attr.add(nodeStruct2.GetCondition(i).attr2.ToString());
+            }
+            isSubset = n2Attr.containsAll(n1Attr);
+        }
+        return isSubset;
     }
 }
