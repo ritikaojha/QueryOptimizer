@@ -20,22 +20,30 @@ import java.util.Set;
 public class HeuristicOptimizer {
     static List<NodeStructure> Optimize(NodeStructure nodeStruct){
         List<NodeStructure> result = new ArrayList<>();
-        //test cascade select
+        //Step 1: Break up the SELECT operations
         NodeStructure temp = nodeStruct.CloneTopNode();
         temp.AddChild(CascadeSelect(nodeStruct.GetChild(0)));
         result.add(temp);
         
-        //test cascade project
-        //result.add(CascadeProject(result.get(result.size()-1)));
+        //Step 2: Push down the SELECT operations
+        NodeStructure topSelect = result.get(result.size()-1).GetChild(0);
+        Set<String> usedConditions = new HashSet<>();
+        while(topSelect.nodeType.equals(NodeType.Select) &&
+                !usedConditions.contains(topSelect.GetCondition(0).ToString())){
+            usedConditions.add(topSelect.GetCondition(0).ToString());
+            temp = nodeStruct.CloneTopNode();
+            temp.AddChild(PushDownSelect(topSelect));
+            result.add(temp);
+            topSelect = result.get(result.size()-1).GetChild(0);
+        }
         
+        //Step 3: Rearrange the leaf nodes
+        
+        //Step 4: Change CARTESIAN PRODUCT to JOIN operations
+        
+        //Step 5: Break up and push down PROJECT operations
         result.add(PushDownProject(result.get(result.size()-1)));
-        //test group project
-        //result.add(GroupProject(result.get(result.size()-1)));
-        /*
-        //test push down select
-        temp = nodeStruct.CloneTopNode();
-        temp.AddChild(PushDownSelect(result.get(result.size()-1).GetChild(0)));
-        result.add(temp);*/
+        
         return result;
     }
     
@@ -58,6 +66,10 @@ public class HeuristicOptimizer {
                     break;
                 case Project:
                     result = CommuteSelectWithProject(result);
+                    break;
+                case Relation:
+                    if(!result.GetCondition(0).attr1.GetRelation().equals(ptr.text.name))
+                        result = result.GetChild(0);
                     break;
             }
             if(result != nodeStruct){
@@ -93,6 +105,21 @@ public class HeuristicOptimizer {
                     break;
                 case Cartesian:
                     result = CommuteProjectJoin(result);
+                    break;
+                case Relation:
+                    List<Condition> toRemove = new ArrayList<>();
+                    for(int i = 0; i < result.NumConditions(); i++){
+                        if(!result.GetCondition(i).attr1.GetRelation().equals(ptr.text.name))
+                            toRemove.add(result.GetCondition(i));
+                    }
+                    if(toRemove.size() == result.NumConditions()){
+                        result = result.GetChild(0);
+                    } else {
+                        for(Condition c: toRemove){
+                            result.RemoveCondition(c);
+                        }
+                    }
+                    
                     break;
             }
             if(result != nodeStruct){
@@ -195,9 +222,10 @@ public class HeuristicOptimizer {
             NodeStructure joinRight = ptr.GetChild(1);
             
             if(condition.conditionType.equals(ConditionType.Join)){
-                if(!joinRight.nodeType.equals(NodeType.Relation) ||
+                if(!joinLeft.nodeType.equals(NodeType.Relation) &&
+                        (!joinRight.nodeType.equals(NodeType.Relation) ||
                         !(Schema.AttrInRelation(condition.attr1, joinRight.text.name) ||
-                        Schema.AttrInRelation(condition.attr2, joinRight.text.name))){
+                        Schema.AttrInRelation(condition.attr2, joinRight.text.name)))){
                     result = ptr.CloneTopNode();
                     result.AddChild(nodeStruct.CloneTopNode());
                     resultPtr = result.GetChild(0);
@@ -224,6 +252,9 @@ public class HeuristicOptimizer {
                     resultPtr.AddChild(joinRight);
                 } else if(result != nodeStruct){
                     result.AddChild(ptr.GetChild(1));
+                }
+                if(result == nodeStruct){
+                    result = result.GetChild(0);
                 }
             }        
         }
@@ -305,13 +336,17 @@ public class HeuristicOptimizer {
             NodeStructure tempLeftProject = new NodeStructure(NodeType.Project);
             for(String attr: projectAttr){
                 Attribute a = new Attribute(attr);
-                if(!ptr.GetChild(0).nodeType.equals(NodeType.Relation) ||
-                        a.GetRelation().equals(ptr.GetChild(0).text.name)){
-                    tempLeftProject.AddCondition(attr);
-                }
                 if(!ptr.GetChild(1).nodeType.equals(NodeType.Relation) ||
                         a.GetRelation().equals(ptr.GetChild(1).text.name)){
                     tempRightProject.AddCondition(attr);
+                } 
+                else if(!ptr.GetChild(0).nodeType.equals(NodeType.Relation)){
+                    tempLeftProject.AddCondition(attr);
+                }
+                
+                if(ptr.GetChild(0).nodeType.equals(NodeType.Relation) &&
+                        a.GetRelation().equals(ptr.GetChild(0).text.name)){
+                    tempLeftProject.AddCondition(attr);
                 }
             }
             resultPtr2 = resultPtr;

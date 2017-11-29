@@ -115,6 +115,11 @@ public class NodeStructure implements Serializable {
         NodeToString();
     }
     
+    public void RemoveCondition(Condition c){
+        conditions.remove(c);
+        NodeToString();
+    }
+    
     public int NumConditions(){
         return conditions.size();
     }
