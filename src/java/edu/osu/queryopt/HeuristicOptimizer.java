@@ -47,7 +47,7 @@ public class HeuristicOptimizer {
         result.add(PushDownProject(result.get(result.size()-1)));
         
         //create joins
-        //result.addAll(CreateJoin(result.get(result.size()-1)));
+        result.addAll(CreateJoin(result.get(result.size()-1)));
         return result;
     }
     
@@ -419,15 +419,13 @@ public class HeuristicOptimizer {
         bfs.add(temp);
         while(!bfs.isEmpty()){
             NodeStructure node = bfs.poll();
-            for (NodeStructure child:node.children) {
+            for (int i = 0; i < node.children.size(); i++) {
+                NodeStructure child = node.children.get(i);
                 bfs.add(child);
                 for (Condition c:child.conditions) {
                     if (c.conditionType == ConditionType.Join) {
-                        String table1 = c.attr1.relation;
-                        String table2 = c.attr2.relation;
-                        NodeStructure x = lowestCommonAncestor(node, table1, table2);
+                        NodeStructure x = findNearestX(child);
                         if (x != null) {
-                            System.out.print(child.text.name);
                             x.text.name = child.text.name.replace("\u03C3", "\u2A1D");
                             node.children.remove(child);
                             node.children.addAll(child.children);
@@ -440,17 +438,13 @@ public class HeuristicOptimizer {
         return result;
     }
     
-    private static NodeStructure lowestCommonAncestor(NodeStructure root, String t1, String t2) {
-        if (root == null 
-                || (root.nodeType == NodeType.Relation && root.text.name.equals(t1))
-                || (root.nodeType == NodeType.Relation && root.text.name.equals(t2)))
-                return root;
-        NodeStructure left = null;
-        NodeStructure right = null;
-        if (root.children.size() > 0)
-            left = lowestCommonAncestor(root.children.get(0), t1, t2);
-        if (root.children.size() > 1)
-            right = lowestCommonAncestor(root.children.get(1), t1, t2);
-        return left == null ? right : right == null ? left : root;
+    private static NodeStructure findNearestX(NodeStructure node) {
+        while(node.children != null && node.children.size() == 1) {
+            if (node.children.get(0).nodeType == NodeType.Cartesian)
+                return node.children.get(0);
+            node = node.children.get(0);
+        }
+        return null;
     }
+    
 }
