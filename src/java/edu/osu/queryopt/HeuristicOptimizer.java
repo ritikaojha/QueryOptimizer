@@ -30,8 +30,9 @@ public class HeuristicOptimizer {
         //Step 2: Push down the SELECT operations
         NodeStructure topSelect = result.get(result.size()-1).GetChild(0);
         Set<String> usedConditions = new HashSet<>();
-        while(topSelect.nodeType.equals(NodeType.Select) &&
-                !usedConditions.contains(topSelect.GetCondition(0).ToString())){
+        while(topSelect.nodeType.equals(NodeType.Select) 
+                && topSelect.GetCondition(0) != null 
+                && !usedConditions.contains(topSelect.GetCondition(0).ToString())){
             usedConditions.add(topSelect.GetCondition(0).ToString());
             temp = nodeStruct.CloneTopNode();
             temp.AddChild(PushDownSelect(topSelect));

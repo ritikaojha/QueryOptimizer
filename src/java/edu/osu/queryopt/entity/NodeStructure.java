@@ -125,7 +125,9 @@ public class NodeStructure implements Serializable {
     }
     
     public Condition GetCondition(int i){
-        return conditions.get(i);
+        if (i < conditions.size())
+            return conditions.get(i);
+        return null;
     }
     
     public boolean HasCondition(Condition c){
