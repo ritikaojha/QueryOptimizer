@@ -255,7 +255,6 @@ public class Visualizer {
                     Map.Entry<NodeStructure, Set<String>> left = null;
                     while (it.hasNext()) {
                         left = (Map.Entry)it.next();
-                        Set<String> value = (Set<String>) left.getValue();
                         if (value.contains(relation[1])) {
                             tempNodes.remove(left.getKey());
                             break;

@@ -14,7 +14,7 @@ import java.util.List;
  * @author kathy
  */
 public class Attribute {
-    private String relation;
+    public String relation;
     private String attribute;
     
     public Attribute(String str){

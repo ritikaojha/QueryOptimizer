@@ -19,7 +19,7 @@ public class NodeStructure implements Serializable {
     public enum NodeType { Project, Select, Join, Cartesian, Relation, None};
     public NodeType nodeType;
     public Text text;
-    private List<Condition> conditions;
+    public List<Condition> conditions;
     public List<NodeStructure> children;
     public int selectivity;                          //estimated execution cost
     public int size;                           //size of query
@@ -218,6 +218,14 @@ public class NodeStructure implements Serializable {
         for(Condition c: this.conditions)
             clone.conditions.add(new Condition(c));
         clone.NodeToString();
+        return clone;
+    }
+    
+    public NodeStructure CloneAllNodes(){
+        NodeStructure clone = CloneTopNode();
+        for (NodeStructure child:children) {
+            clone.children.add(child.CloneAllNodes());
+        }
         return clone;
     }
 }

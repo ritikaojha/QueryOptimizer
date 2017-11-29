@@ -11,7 +11,9 @@ import edu.osu.queryopt.entity.NodeStructure;
 import edu.osu.queryopt.entity.NodeStructure.NodeType;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
 /**
  *
@@ -44,6 +46,8 @@ public class HeuristicOptimizer {
         //Step 5: Break up and push down PROJECT operations
         result.add(PushDownProject(result.get(result.size()-1)));
         
+        //create joins
+        result.addAll(CreateJoin(result.get(result.size()-1)));
         return result;
     }
     
@@ -406,5 +410,49 @@ public class HeuristicOptimizer {
             result.AddChild(1,right);
         }
         return result;
+    }
+    
+    private static List<NodeStructure> CreateJoin(NodeStructure nodeStruct){
+        List<NodeStructure> result = new ArrayList<>();
+        NodeStructure temp = nodeStruct.CloneAllNodes();;
+        Queue<NodeStructure> bfs = new LinkedList<>();
+        bfs.add(temp);
+        while(!bfs.isEmpty()){
+            NodeStructure node = bfs.poll();
+            for (NodeStructure child:node.children) {
+                bfs.add(child);
+                for (Condition c:child.conditions) {
+                    if (c.conditionType == ConditionType.Join) {
+                        String table1 = c.attr1.relation;
+                        String table2 = c.attr2.relation;
+                        NodeStructure x = lowestCommonAncestor(node, table1, table2);
+                        if (x != null) {
+                            System.out.print(child.text.name);
+                            x.text.name = child.text.name.replace("\u03C3", "\u2A1D");
+                            node.children.remove(child);
+                            node.children.addAll(child.children);
+                            result.add(node);
+                            break;
+                        }
+                    }
+                }
+                break;
+            }
+        }
+        return result;
+    }
+    
+    private static NodeStructure lowestCommonAncestor(NodeStructure root, String t1, String t2) {
+        if (root == null 
+                || (root.nodeType == NodeType.Relation && root.text.name.equals(t1))
+                || (root.nodeType == NodeType.Relation && root.text.name.equals(t2)))
+                return root;
+        NodeStructure left = null;
+        NodeStructure right = null;
+        if (root.children.size() > 0)
+            left = lowestCommonAncestor(root.children.get(0), t1, t2);
+        if (root.children.size() > 1)
+            right = lowestCommonAncestor(root.children.get(1), t1, t2);
+        return left == null ? right : right == null ? left : root;
     }
 }
